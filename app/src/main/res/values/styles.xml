@@ -1,0 +1,12 @@
+<resources>
+    <style name="Theme.TvLauncher" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">#0C1421</item>
+        <item name="android:colorAccent">#C0E6FF</item>
+        <item name="android:colorBackground">#0C1421</item>
+        <item name="android:colorButtonNormal">#1A283B</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

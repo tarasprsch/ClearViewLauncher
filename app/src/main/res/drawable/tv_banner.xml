@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="320dp" android:height="180dp">
+        <bitmap android:src="@drawable/app_banner" android:gravity="fill" android:filter="true" android:mipMap="true" />
+    </item>
+</layer-list>

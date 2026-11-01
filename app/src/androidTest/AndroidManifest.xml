@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="dev.personal.tvlauncher.fixture.PreviewFixtureProvider"
+            android:authorities="dev.personal.tvlauncher.fixture"
+            android:exported="true" />
+    </application>
+</manifest>
