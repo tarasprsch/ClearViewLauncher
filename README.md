@@ -30,11 +30,11 @@ Available channel lists depend on what your installed apps share with the home s
 
 Requires **Android TV 14 or later**.
 
-1. Copy the `ClearViewLauncher-0.7.8-release.apk` file to your TV using a USB drive or a file-transfer app.
+1. Copy the `ClearViewLauncher-0.7.10-release.apk` file to your TV using a USB drive or a file-transfer app.
 2. Open the APK with a file manager on your TV. If prompted, allow that file manager to install unknown apps, then select **Install**.
 3. Open **Clear View Launcher** from your TV's apps screen.
 4. In the launcher's **Settings**, enable **Channel access**, then open **Channel lists** and add the lists you want to see.
-5. Choose **Set as Home** if your TV supports changing its default launcher. Add your favourite apps in **Apps & favourites**.
+5. Choose **Use as default launcher** if your TV supports changing its default launcher. Add your favourite apps in **Apps & favourites**.
 
 **Your TV. Your favourites. A clear view.**
 

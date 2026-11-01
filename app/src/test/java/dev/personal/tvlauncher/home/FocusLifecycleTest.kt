@@ -24,6 +24,48 @@ import java.util.concurrent.TimeUnit
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w960dp-h540dp-land")
 class FocusLifecycleTest {
+    @Test fun homeIntentAndContentRefreshNeverTemporarilySelectTheHeader() {
+        installApps(1)
+        var appCount = 1
+        val app = ApplicationProvider.getApplicationContext<LauncherApplication>()
+        Shadows.shadowOf(app).grantPermissions(READ_TV_LISTINGS)
+        val provider = Robolectric.buildContentProvider(FocusProvider::class.java).create().get()
+        ShadowContentResolver.registerProviderInternal("android.media.tv", provider)
+        runBlocking { app.preferences.select(ChannelRow("source.app", 1, "stable", "List", emptyList())) }
+        Robolectric.buildActivity(MainActivity::class.java).setup().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            pumpUntil { activity.window.decorView.findViewWithTag<View>("card:id:12") != null }
+            pumpFor(200)
+            val transitions = mutableListOf<String?>()
+            val listener = android.view.ViewTreeObserver.OnGlobalFocusChangeListener { _, focused ->
+                transitions.add(focused?.tag as? String)
+            }
+            activity.window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener(listener)
+            try {
+                for (key in listOf("card:all-apps", "card:id:12")) {
+                    for (homePress in listOf(true, false)) {
+                        activity.window.decorView.findViewWithTag<View>(key).requestFocus()
+                        pumpFor(100)
+                        transitions.clear()
+                        if (homePress) {
+                            installApps(++appCount)
+                            controller.pause().newIntent(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)).resume()
+                        } else {
+                            provider.extraLists++
+                            app.contentResolver.notifyChange(Uri.parse("content://android.media.tv/channel"), null)
+                        }
+                        pumpFor(500)
+                        assertEquals("The selected panel must be restored", key, activity.window.decorView.findFocus()?.tag)
+                        assertFalse("Header focus flashed while refreshing $key (Home=$homePress): $transitions",
+                            transitions.any { it == "settings" || it == "system-settings" })
+                    }
+                }
+            } finally {
+                activity.window.decorView.viewTreeObserver.removeOnGlobalFocusChangeListener(listener)
+            }
+        }
+    }
+
     @Test fun publishedAppBannersReachHomeAllAppsAndFavouritesWithIconFallback() {
         val bannerId = 0x7f080abc
         val iconId = 0x7f080abd

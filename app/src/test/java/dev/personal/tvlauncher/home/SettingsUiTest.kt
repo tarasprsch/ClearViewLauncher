@@ -47,7 +47,7 @@ class SettingsUiTest {
         }
     }
 
-    @Test fun unheldHomeRoleDoesNotMistakeTheOnlyVisibleCandidateForTheDefault() {
+    @Test fun homeSelectionDisablesActionOnlyWhileHomeRoleIsHeld() {
         val roles = Shadows.shadowOf(app.getSystemService(android.app.role.RoleManager::class.java))
         roles.addAvailableRole(android.app.role.RoleManager.ROLE_HOME)
         Robolectric.buildActivity(MainActivity::class.java).create().use { controller ->
@@ -56,7 +56,7 @@ class SettingsUiTest {
                 activity.window.decorView.findViewWithTag<View>("home-role").isEnabled)
             roles.addHeldRole(android.app.role.RoleManager.ROLE_HOME)
             display(activity, HomeState())
-            assertFalse(activity.window.decorView.findViewWithTag<View>("home-role").isEnabled)
+            assertFalse("The selected default launcher action must be disabled", activity.window.decorView.findViewWithTag<View>("home-role").isEnabled)
             roles.removeHeldRole(android.app.role.RoleManager.ROLE_HOME)
             roles.addAvailableRole(android.app.role.RoleManager.ROLE_HOME)
             display(activity, HomeState())
@@ -189,7 +189,7 @@ class SettingsUiTest {
         }
     }
 
-    @Test fun defaultHomeStatusDisablesActionAndExplainsItsPurpose() {
+    @Test fun homeSelectionDisablesActionWhenResolvedAsDefault() {
         val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(android.content.Intent.CATEGORY_HOME)
         fun resolvedHome(owner: String) = android.content.pm.ResolveInfo().apply {
             isDefault = true
@@ -208,7 +208,7 @@ class SettingsUiTest {
             assertTrue(before.isNotBlank())
             packageManager.setResolveInfosForIntent(intent, listOf(resolvedHome("dev.personal.tvlauncher")))
             display(activity, HomeState())
-            assertFalse(activity.window.decorView.findViewWithTag<View>("home-role").isEnabled)
+            assertFalse("The selected default launcher action must be disabled", activity.window.decorView.findViewWithTag<View>("home-role").isEnabled)
             assertNotEquals(before, activity.window.decorView.findViewWithTag<TextView>("home-role-status").text.toString())
         }
     }

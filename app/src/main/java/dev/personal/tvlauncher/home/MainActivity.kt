@@ -90,6 +90,9 @@ class MainActivity : ComponentActivity() {
             chromeFocus = tag?.takeUnless { it.startsWith("card:") }
         }.apply {
             orientation = LinearLayout.VERTICAL
+            // Park fallback focus here while card rows rebuild, rather than on a header button.
+            isFocusableInTouchMode = true
+            descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(TvColors.ambient, TvColors.background, TvColors.background))
             setPadding(dp(48), dp(24), dp(48), dp(24))
             // Keep the scrolling viewport from drawing over the fixed header.
@@ -401,9 +404,6 @@ class MainActivity : ComponentActivity() {
         setting(content, getString(R.string.channel_lists), "settings-lists", R.drawable.ic_lists) { navigate(Screen.LISTS) }
         setting(content, getString(R.string.language), "language", R.drawable.ic_language) { chooseLanguage() }
         val device = group(getString(R.string.device))
-        setting(device, getString(R.string.refresh_content), "refresh", R.drawable.ic_refresh) { model.refresh() }.apply {
-            (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(22)
-        }
         val hasAccess = checkSelfPermission(READ_TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
         statusSetting(device, getString(R.string.channel_access), "permission", R.drawable.ic_access, hasAccess,
             getString(if (hasAccess) R.string.channel_access_granted else R.string.channel_access_help)) { requestChannels() }
@@ -601,8 +601,8 @@ class MainActivity : ComponentActivity() {
     }
     private fun requestChannels() { permission.launch(READ_TV_LISTINGS) }
     private fun isDefaultHome(): Boolean {
-        // A supported Home role is authoritative; a visibility-filtered resolver
-        // can otherwise report our own activity as the only available candidate.
+        // This reports the saved Home choice. TV firmware can still prefer its
+        // higher-priority system launcher when the Home button is pressed.
         val roleHeld = runCatching {
             val manager = getSystemService(RoleManager::class.java)
             if (manager?.isRoleAvailable(RoleManager.ROLE_HOME) == true) manager.isRoleHeld(RoleManager.ROLE_HOME) else null

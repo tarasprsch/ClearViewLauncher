@@ -11,9 +11,8 @@
     <string name="content">Вміст</string>
     <string name="device">ПРИСТРІЙ</string>
     <string name="channel_lists">Списки каналів</string>
-    <string name="refresh_content">Оновити вміст</string>
     <string name="channel_access">Доступ до каналів</string>
-    <string name="set_home">Зробити головним екраном</string>
+    <string name="set_home">Зробити типовим лаунчером</string>
     <string name="favorite">Обране</string>
     <string name="no_favourites">Додайте застосунок зі списку нижче, щоб показати його на головному екрані.</string>
     <string name="move_left">Посунути ліворуч</string>
@@ -42,7 +41,7 @@
     <string name="close">Закрити</string>
     <string name="open_source">Відкрити застосунок-джерело</string>
     <string name="permission_denied">Доступ до каналів не надано. Установлені застосунки доступні, а вибрані списки збережено.</string>
-    <string name="already_home">Clear View Launcher уже є вашим головним екраном.</string>
+    <string name="already_home">Clear View Launcher уже вибрано типовим лаунчером.</string>
     <string name="home_chooser_failed">Не вдалося відкрити вибір головного екрана. Скористайтеся налаштуваннями типових застосунків або інструкцією з налаштування через ADB.</string>
     <string name="home_role_unavailable">Цей пристрій не підтримує вибір головного екрана цим способом. Скористайтеся налаштуваннями типових застосунків або інструкцією з налаштування через ADB.</string>
     <string name="system_settings_unavailable">Цей розділ системних налаштувань недоступний на пристрої.</string>
@@ -76,7 +75,7 @@
     <string name="application_channel">%1$s: %2$s</string>
     <string name="channel_access_granted">Доступ надано. Списки каналів із ваших застосунків можуть з’являтися на головному екрані.</string>
     <string name="channel_access_help">Надайте доступ до списків каналів, опублікованих вашими застосунками.</string>
-    <string name="home_active">Активно. Clear View Launcher є вашим типовим головним екраном.</string>
-    <string name="home_help">Виберіть Clear View Launcher для відкриття кнопкою головного екрана.</string>
+    <string name="home_active">Clear View Launcher вибрано типовим лаунчером. На деяких телевізорах кнопка Home усе одно відкриває системний лаунчер.</string>
+    <string name="home_help">Виберіть Clear View Launcher типовим лаунчером. На деяких телевізорах кнопка Home усе одно відкриває системний лаунчер.</string>
     <string name="add_to_favourites">Додати до обраного</string>
 </resources>

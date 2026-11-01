@@ -11,9 +11,8 @@
     <string name="content">Content</string>
     <string name="device">DEVICE</string>
     <string name="channel_lists">Channel lists</string>
-    <string name="refresh_content">Refresh content</string>
     <string name="channel_access">Channel access</string>
-    <string name="set_home">Set as Home</string>
+    <string name="set_home">Use as default launcher</string>
     <string name="favorite">Favorite</string>
     <string name="no_favourites">Add an app below to show it on Home.</string>
     <string name="move_left">Move left</string>
@@ -42,7 +41,7 @@
     <string name="close">Close</string>
     <string name="open_source">Open source app</string>
     <string name="permission_denied">Channel access was not granted. Installed apps remain available; saved lists are kept.</string>
-    <string name="already_home">Clear View Launcher is already your Home app.</string>
+    <string name="already_home">Clear View Launcher is already selected as the default launcher.</string>
     <string name="home_chooser_failed">This device could not open the Home chooser. Use its default-app settings or documented ADB setup.</string>
     <string name="home_role_unavailable">This device does not offer the Home role. Use its default-app settings or the documented ADB setup.</string>
     <string name="system_settings_unavailable">This system settings screen is unavailable on this device.</string>
@@ -74,7 +73,7 @@
     <string name="application_channel">%1$s: %2$s</string>
     <string name="channel_access_granted">Access allowed. Published channel lists from your apps can appear on Home.</string>
     <string name="channel_access_help">Allow access to read channel lists published by your apps.</string>
-    <string name="home_active">Active. Clear View Launcher is your default Home screen.</string>
-    <string name="home_help">Choose Clear View Launcher as the app opened by the Home button.</string>
+    <string name="home_active">Clear View Launcher is selected as the default launcher. Some TVs may still open their system launcher when you press Home.</string>
+    <string name="home_help">Select Clear View Launcher as the default launcher. Some TVs may still open their system launcher when you press Home.</string>
     <string name="add_to_favourites">Add to favourites</string>
 </resources>

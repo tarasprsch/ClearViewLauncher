@@ -26,9 +26,9 @@ Back up `.signing/personal.jks` and `keystore.properties` securely together. Bot
 
 1. Enable developer options and USB/network debugging on the TV; authorize your computer. Pair network ADB through the device's own settings where required.
 2. Record the existing default Home component before changing it: `adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME`.
-3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.7.8-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.7.8-debug.apk` for debug testing. Filenames include the application version automatically.
+3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.7.10-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.7.10-debug.apk` for debug testing. Filenames include the application version automatically.
 4. Open **Clear View Launcher** from your current launcher. Go to **Settings > Channel access** and approve the system permission prompt. Then use **Settings > Channel lists** to select rows grouped by their source app. No rows are automatically selected.
-5. Use **Settings > Set as Home** when the system Home role is available. Some devices instead offer a default Home setting or a Home-button chooser. Device firmware can prevent changing Home.
+5. Use **Settings > Use as default launcher** when the system Home role is available. Some devices instead offer a default Home setting or a Home-button chooser. Device firmware can prevent changing Home.
 
 For devices supporting it, explicitly select Home with:
 
@@ -49,7 +49,7 @@ Updates use `adb install -r` with a higher version code and the same signing key
 - D-pad moves across cards and between rows. OK opens content. Home and All apps have no long-press editing.
 - **Settings > Apps & favourites** shows image tiles for apps on Home and available apps. Press OK on an available app and choose **Add to favourites**; saved apps offer removal and reordering.
 - **Settings > Channel lists** shows selected lists in Home order and available lists grouped by app. Use Add, the up/down arrow icons and Remove. All selected nonempty lists appear on Home; missing and empty lists stay saved until restored or explicitly removed.
-- **Channel access** and **Set as Home** show short status explanations and disable once access is granted or Clear View Launcher is the default Home.
+- **Channel access** disables once access is granted. **Use as default launcher** disables when Clear View is selected and explains the saved Home selection; some TV firmware still sends Home presses to its system launcher.
 - Back closes dialogs/settings. At Home it leaves the launcher visible.
 - A failed content launch offers an explicit **Open source app** action.
 - Artwork uses asynchronous bounded caches and card-sized requests. Titles remain visible on missing/inaccessible media or network failure. Navigation and app launching do not require network access.
@@ -60,3 +60,22 @@ Known limitations and recovery guidance are recorded in [verification.md](verifi
 
 To roll back, restore the Home component recorded before installation using `adb shell cmd package set-home-activity PACKAGE/ACTIVITY`, or choose the original Home in device settings. Press Home and confirm the original launcher works before uninstalling Clear View Launcher. Uninstall: `adb uninstall dev.personal.tvlauncher`. This app never disables or uninstalls the stock launcher.
 
+
+## Home-button workaround on the tested G1
+
+On the SDMC G1 running the tested Android 14 firmware, Google Home has a higher intent priority than installed launchers. The Home role can name Clear View while the Home button still opens Google. Reapplying the default launcher alone did not resolve this.
+
+After selecting Clear View as the default launcher, the tested device workaround is to disable the Google launcher for user 0. The package stays installed. These package names are specific to the tested TV; verify them before using these commands on another device.
+
+```powershell
+adb shell pm disable-user --user 0 com.google.android.tvlauncher
+```
+
+To restore Google Home:
+
+```powershell
+adb shell pm enable --user 0 com.google.android.tvlauncher
+adb shell cmd package set-home-activity com.google.android.tvlauncher/.MainActivity
+```
+
+The application never disables another launcher itself. Device changes are manual and optional. Keep ADB available when testing Home-button behaviour. Re-enable the original launcher before uninstalling Clear View.
