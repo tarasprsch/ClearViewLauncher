@@ -1,6 +1,6 @@
 # Verification
 
-Latest recorded checks: 2026-11-02, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
+Latest recorded checks: 2026-11-03, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
 
 ## Automated checks
 
@@ -23,17 +23,19 @@ Last full-check command:
 
 The artwork-only update was built with `:app:assembleRelease --offline --no-daemon --console plain`. The icon and banner in the APK were checked against `app/src/main/res/drawable-nodpi/app_icon.png` and `app_banner.png`; every decoded pixel matches after Android PNG optimization. The square icon uses the supplied square artwork directly, preserving its transparent corners without added padding. The TV banner uses the separate widescreen artwork. The release signature was verified with the original signer. Unit tests and full debug lint were not rerun for this asset-only update.
 
-Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Options-order build was installed successfully. The latest artwork update has not been installed on the TV. No TV checks were performed for this update.
+Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Options-order build was installed successfully. The latest artwork update was rebuilt, signature-verified and installed successfully on the TV on 2026-11-03. Installation only was performed; no device checks or app launch followed.
 
 ## Current signed release
 
 - APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.0-release.apk`; version code **21**, application ID `dev.personal.tvlauncher`.
 - Size: **2,451,620 bytes**.
-- SHA-256: `6b8e3b81e7c85064c9229986791349da6dab1416f3719cebbd59451026acfe2d`.
+- SHA-256: `b66fedf5d43104af2a2072f86753e39e37a5cbcf63b0669dda236d1da558d8f4`.
 - `apksigner verify --verbose --print-certs`: verifies with APK signature scheme v2 and the original RSA-3072 signer.
 - Signing certificate SHA-256: `f0216e56a56d5443a5d040900eae7b59a9b8b48dadc458d6e22516cd3d3724e1`.
 
 ## Device checks
+
+The 0.8.0 release with the new square icon and separate TV banner installed successfully on 2026-11-03 using `adb install -r`. No device checks or app launch were performed.
 
 The preceding 0.8.0 build installed successfully with `adb install -r`. Installation only was performed, with no device checks or app launch afterward.
 
