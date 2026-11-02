@@ -15,19 +15,21 @@ Latest recorded checks: 2026-11-02, Windows, JDK 17, Gradle 8.13, Android SDK 36
 
 The host suite covers provider ownership/parsing, stable identities and ordering, permission/read failures, real DataStore persistence, intent validation, local HTTP artwork and image recycling, D-pad/focus restoration, Settings edits and Ukrainian localization. UI regressions cover viewport clipping, captions on every Home row, matching compact Home/editor tiles, banner/icon fallbacks on all app screens, neighbour overlap without reflow, foreground borders over opaque artwork, font bounds for two-line labels, saved Home-role status, initial selection after delayed preferences, System settings placement and its standard intent, and system date/time formatting independent of interface language. Home customization regressions cover hidden Apps across populated/empty/missing/denied/loading channel states, inert date navigation, responsive grid wrapping and stable app focus across reflow, six saved gradients, actual visibility/layout control writes, legacy preference defaults and DataStore recreation. Review regressions retain saved app anchors while preferences load, preserve channel-row identity when sources reuse internal item IDs, and restore chooser focus after a refresh and cancellation. Date/time cases include US/UK defaults, Ukrainian long dates, live 12/24-hour changes and system locale changes. New regressions cover Home row/grid horizontal edge containment (including single-item rows), date-to-Settings navigation, the bottom two-column Options section, and its focus retention through content refresh. The existing favourite-editor lifecycle regression follows the new section order while retaining saved app-row positions. Square, widescreen and extra-wide channel cards have matching neighbour overlap within 2dp, preserve image proportions and keep their neighbours stationary. Home-intent regressions reset selection in Apps row/grid modes from cards, header controls and secondary pages, cover All apps/hidden Apps/empty and denied channels, and verify that delayed preferences or channel data do not restore the old selection. Ordinary refreshes retain the selected card, and the lifecycle test continues to reject transient Settings focus. All existing Back/refresh cases also pass in the current suite. Host graphics use Robolectric shadows and do not establish native rendering performance.
 
-Final build command:
+Last full-check command:
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleRelease --offline --no-daemon --console plain
 ```
 
-Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Home-button selection build was installed successfully. The latest Options-order update is verified locally and has not been installed on the TV. No TV checks were performed for this update.
+The artwork-only update was built with `:app:assembleRelease --offline --no-daemon --console plain`. The icon and banner in the APK were checked against `app/src/main/res/drawable-nodpi/app_icon.png` and `app_banner.png`; every decoded pixel matches after Android PNG optimization. The square icon uses the supplied square artwork directly, preserving its transparent corners without added padding. The TV banner uses the separate widescreen artwork. The release signature was verified with the original signer. Unit tests and full debug lint were not rerun for this asset-only update.
+
+Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Options-order build was installed successfully. The latest artwork update has not been installed on the TV. No TV checks were performed for this update.
 
 ## Current signed release
 
 - APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.0-release.apk`; version code **21**, application ID `dev.personal.tvlauncher`.
-- Size: **2,319,084 bytes**.
-- SHA-256: `c4425ef9ca99121519317a4dd9facee9cdae89f004a681183c84fd080e5e4787`.
+- Size: **2,451,620 bytes**.
+- SHA-256: `6b8e3b81e7c85064c9229986791349da6dab1416f3719cebbd59451026acfe2d`.
 - `apksigner verify --verbose --print-certs`: verifies with APK signature scheme v2 and the original RSA-3072 signer.
 - Signing certificate SHA-256: `f0216e56a56d5443a5d040900eae7b59a9b8b48dadc458d6e22516cd3d3724e1`.
 

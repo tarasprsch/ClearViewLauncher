@@ -47,7 +47,7 @@ BackgroundPalette supplies six dark diagonal gradients: Midnight (the original c
 
 Coil prefers poster, thumbnail, then logo artwork. Logos use fit-centre. Requests are sized to the card; memory/disk caches are bounded at 24/48 MiB. Content/resource and HTTP(S) image URIs are supported; HTTP is allowed for provider-supplied hosts. Missing or failed artwork retains a placeholder and the focused title. Navigation does not require connectivity.
 
-The supplied root [icon.png](../icon.png) is packaged unchanged as `drawable-nodpi/app_icon.png`. The separate `app_banner.png` adapts it to a full-width peach/coral TV banner. `drawable/ic_launcher.xml` and `tv_banner.xml` define their display bounds; the banner fills the 16:9 panel rather than embedding a square icon on a dark background.
+The square app icon and widescreen TV banner are maintained directly in `app/src/main/res/drawable-nodpi/` as [app_icon.png](../app/src/main/res/drawable-nodpi/app_icon.png) and [app_banner.png](../app/src/main/res/drawable-nodpi/app_banner.png). `drawable/ic_launcher.xml` displays the complete square icon at 48dp by 48dp, preserving its transparent corners without added padding. `drawable/tv_banner.xml` displays the banner across the full 320dp by 180dp TV panel.
 
 ## Platform integration
 
