@@ -26,7 +26,7 @@ Back up `.signing/personal.jks` and `keystore.properties` securely together. Bot
 
 1. Enable developer options and USB/network debugging on the TV; authorize your computer. Pair network ADB through the device's own settings where required.
 2. Record the existing default Home component before changing it: `adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME`.
-3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.7.10-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.7.10-debug.apk` for debug testing. Filenames include the application version automatically.
+3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.8.0-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.8.0-debug.apk` for debug testing. Filenames include the application version automatically.
 4. Open **Clear View Launcher** from your current launcher. Go to **Settings > Channel access** and approve the system permission prompt. Then use **Settings > Channel lists** to select rows grouped by their source app. No rows are automatically selected.
 5. Use **Settings > Use as default launcher** when the system Home role is available. Some devices instead offer a default Home setting or a Home-button chooser. Device firmware can prevent changing Home.
 
@@ -46,11 +46,14 @@ Updates use `adb install -r` with a higher version code and the same signing key
 
 ## Remote and recovery
 
+- Pressing Home returns to the first favourite app (or All apps). If Apps is hidden, Home selects the first nonempty channel item, or the date when there is no content. Ordinary content refreshes retain the current selection.
 - D-pad moves across cards and between rows. OK opens content. Home and All apps have no long-press editing.
-- **Settings > Apps & favourites** shows image tiles for apps on Home and available apps. Press OK on an available app and choose **Add to favourites**; saved apps offer removal and reordering.
+- On Home, Up from the top content row focuses the date; OK has no action there. Right reaches Settings and Down returns to the selected card. A blank Home defaults to the date.
+- **Settings > Background** offers six saved colour gradients, including the original Midnight background.
+- **Settings > Apps & favourites** ends with an **Options** section containing Row/Grid layout (left) and Show Apps on Home (right). Hiding Apps removes its entire Home section without deleting favourites; Grid wraps panels to the available width. The editor shows image tiles for apps on Home and available apps. Press OK on an available app and choose **Add to favourites**; saved apps offer removal and reordering.
 - **Settings > Channel lists** shows selected lists in Home order and available lists grouped by app. Use Add, the up/down arrow icons and Remove. All selected nonempty lists appear on Home; missing and empty lists stay saved until restored or explicitly removed.
 - **Channel access** disables once access is granted. **Use as default launcher** disables when Clear View is selected and explains the saved Home selection; some TV firmware still sends Home presses to its system launcher.
-- Back closes dialogs/settings. At Home it leaves the launcher visible.
+- Back dismisses dialogs and returns from secondary pages. On Home, it selects the first panel in the current row, then the first panel on Home; another press does nothing. From the date or Settings button it selects the first Home panel, or the date when Home is empty.
 - A failed content launch offers an explicit **Open source app** action.
 - Artwork uses asynchronous bounded caches and card-sized requests. Titles remain visible on missing/inaccessible media or network failure. Navigation and app launching do not require network access.
 

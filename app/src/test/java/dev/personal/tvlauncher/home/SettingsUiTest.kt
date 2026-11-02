@@ -23,6 +23,26 @@ import java.util.concurrent.TimeUnit
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w960dp-h540dp-land")
 class SettingsUiTest {
+    @Test fun startupSelectsFirstFavouriteAfterPreferencesLoadAndPreservesLaterSelection() {
+        val apps = listOf("one", "two").map { TvApp(ComponentName("source.$it", "source.$it.Main"), it, null) }
+        val favourites = listOf(apps[1].key, apps[0].key)
+        Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            // The first frame has no saved preferences yet, so only All apps exists.
+            layout(activity)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(100, TimeUnit.MILLISECONDS)
+            assertEquals("card:all-apps", activity.window.decorView.findFocus()?.tag)
+            val loaded = HomeState(apps = apps, preferences = LauncherPreferences(favouriteApps = favourites), preferencesLoaded = true)
+            display(activity, loaded); layout(activity)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(100, TimeUnit.MILLISECONDS)
+            assertEquals("Startup must select the first app in saved favourite order", "card:${apps[1].key}", activity.window.decorView.findFocus()?.tag)
+            activity.window.decorView.findViewWithTag<View>("card:all-apps").requestFocus()
+            display(activity, loaded); layout(activity)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(100, TimeUnit.MILLISECONDS)
+            assertEquals("A later user selection must survive refreshes", "card:all-apps", activity.window.decorView.findFocus()?.tag)
+        }
+    }
+
     @Test fun returningUpRevealsEveryChannelRowHeadingAlongWithItsCards() {
         val rows = (1..8).map { id -> ChannelRow("source.app", id.toLong(), "row$id", "List $id",
             listOf(ChannelItem(id.toLong(), "Item $id", null))) }
@@ -215,6 +235,9 @@ class SettingsUiTest {
     private val app get() = ApplicationProvider.getApplicationContext<LauncherApplication>()
     @Before fun clearPreferences() = runBlocking {
         val old = app.preferences.data.first()
+        app.preferences.setShowApps(true)
+        app.preferences.setAppsLayout(AppsLayout.ROW)
+        app.preferences.setBackground(BackgroundTheme.MIDNIGHT)
         old.favouriteApps.forEach { app.preferences.favourite(it, false) }
         old.lists.forEach { app.preferences.forget(it.key) }
     }
@@ -234,7 +257,7 @@ class SettingsUiTest {
                 val activity = controller.get(); display(activity, state)
                 val all = views(activity.window.decorView)
                 assertNull(activity.window.decorView.findViewWithTag<View>("manage"))
-                assertNotNull(activity.window.decorView.findViewWithTag<View>("system-settings"))
+                assertNull(activity.window.decorView.findViewWithTag<View>("system-settings"))
                 assertTrue(all.filterIsInstance<TextView>().any { it.text.toString() == "Apps" })
                 assertFalse(all.filterIsInstance<TextView>().any { it.text.contains("Hold OK") || it.text.contains("Empty source list") })
                 listOf("choose", "allow", "permission-settings", "retry").forEach { assertNull(activity.window.decorView.findViewWithTag<View>(it)) }
@@ -257,11 +280,17 @@ class SettingsUiTest {
         }
     }
 
-    @Test fun headerSystemSettingsUsesStandardDeviceSettingsIntent() {
+    @Test fun deviceSettingsIsFirstInSettingsAndUsesStandardDeviceSettingsIntent() {
         Robolectric.buildActivity(MainActivity::class.java).create().use { controller ->
             val activity = controller.get()
+            assertNull("Device settings must not be on Home", activity.window.decorView.findViewWithTag<View>("system-settings"))
+            click(activity, "settings")
             val button = activity.window.decorView.findViewWithTag<View>("system-settings")
-            assertNotNull("Device settings must be in the header", button)
+            assertNotNull("Device settings must be available in Settings", button)
+            val access = activity.window.decorView.findViewWithTag<View>("permission")
+            val device = access.parent as ViewGroup
+            assertSame("Device settings and Channel access belong in the same section", device, button.parent)
+            assertTrue("Device settings must precede Channel access", device.indexOfChild(button) < device.indexOfChild(access))
             button.performClick()
             assertEquals(Settings.ACTION_SETTINGS, Shadows.shadowOf(activity).nextStartedActivity.action)
         }

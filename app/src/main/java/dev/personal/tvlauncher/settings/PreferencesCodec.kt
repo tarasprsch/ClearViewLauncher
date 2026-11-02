@@ -5,6 +5,9 @@ import org.json.JSONObject
 
 fun encodePreferences(value: LauncherPreferences): String = JSONObject().apply {
     put("version", 1)
+    put("showApps", value.showApps)
+    put("appsLayout", value.appsLayout.name)
+    put("background", value.background.name)
     put("apps", JSONArray(value.favouriteApps))
     put("lists", JSONArray().apply {
         value.lists.forEach { row -> put(JSONObject().apply {
@@ -25,5 +28,8 @@ fun decodePreferences(value: String?): LauncherPreferences {
             val row = lists.getJSONObject(index)
             SavedList(row.getString("key"), row.getString("owner"), row.getString("title"), row.getBoolean("visible"))
         }.distinctBy { it.key },
+        showApps = root.optBoolean("showApps", true),
+        appsLayout = AppsLayout.entries.firstOrNull { it.name == root.optString("appsLayout") } ?: AppsLayout.ROW,
+        background = BackgroundTheme.entries.firstOrNull { it.name == root.optString("background") } ?: BackgroundTheme.MIDNIGHT,
     )
 }

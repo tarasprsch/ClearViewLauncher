@@ -84,6 +84,42 @@ class ContentCardTest {
         }
     }
 
+    @Test @Config(qualifiers = "w960dp-h540dp-land")
+    fun wideAndSquareChannelPanelsOverlapTheirNeighboursByTheSameAmount() {
+        Robolectric.buildActivity(android.app.Activity::class.java).setup().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            val row = android.widget.LinearLayout(activity).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setPadding(32, 32, 32, 32); clipChildren = false; clipToPadding = false
+            }
+            activity.setContentView(row)
+            val overlaps = mutableListOf<Int>()
+            for (ratio in listOf(1f, 16f / 9f, 2.4f)) {
+                row.removeAllViews()
+                val cards = (1..3).map { id -> ContentCard(activity).apply {
+                    bind("Channel $id", null, android.graphics.drawable.ColorDrawable(android.graphics.Color.RED), ratio == 1f, ratio)
+                    row.addView(this)
+                } }
+                Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(250, TimeUnit.MILLISECONDS)
+                val positions = cards.map { it.left }
+                cards[1].requestFocus()
+                Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(250, TimeUnit.MILLISECONDS)
+                val bounds = cards.map { android.graphics.Rect().also { rect ->
+                    assertTrue((it.art.parent as View).getGlobalVisibleRect(rect))
+                } }
+                val left = bounds[0].right - bounds[1].left
+                val right = bounds[1].right - bounds[2].left
+                assertTrue("Every common artwork shape should overlap both neighbours", left > 0 && right > 0)
+                assertEquals("Focus growth must remain symmetric", left.toFloat(), right.toFloat(), 2f)
+                assertEquals("Focus must preserve image proportions", cards[1].scaleX, cards[1].scaleY, 0f)
+                assertEquals("Focus growth must not reflow panels", positions, cards.map { it.left })
+                overlaps += left
+            }
+            assertTrue("Square, widescreen and extra-wide panels should have equal overlap: $overlaps",
+                overlaps.max() - overlaps.min() <= activity.dp(2))
+        }
+    }
+
     @Test fun appBannersFillTheirRectangleAndRebindingAnIconKeepsItUncropped() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val card = ContentCard(context)

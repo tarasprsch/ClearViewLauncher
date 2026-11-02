@@ -55,7 +55,8 @@ class FocusLifecycleTest {
                             app.contentResolver.notifyChange(Uri.parse("content://android.media.tv/channel"), null)
                         }
                         pumpFor(500)
-                        assertEquals("The selected panel must be restored", key, activity.window.decorView.findFocus()?.tag)
+                        assertEquals("Home resets to the first panel; ordinary refreshes retain selection",
+                            if (homePress) "card:all-apps" else key, activity.window.decorView.findFocus()?.tag)
                         assertFalse("Header focus flashed while refreshing $key (Home=$homePress): $transitions",
                             transitions.any { it == "settings" || it == "system-settings" })
                     }
@@ -143,6 +144,11 @@ class FocusLifecycleTest {
                 android.view.KeyEvent.KEYCODE_DPAD_UP to "card:source.app7/source.app7.Main",
                 android.view.KeyEvent.KEYCODE_DPAD_UP to "back",
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN to "card:source.app7/source.app7.Main",
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN to "card:source.app1/source.app1.Main",
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN to "card:source.app8/source.app8.Main",
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN to "home-apps-layout",
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT to "home-apps-visible",
+                android.view.KeyEvent.KEYCODE_DPAD_UP to "card:source.app8/source.app8.Main",
             ).forEach { (key, expected) ->
                 activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, key))
                 activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, key))
@@ -182,6 +188,9 @@ class FocusLifecycleTest {
     @Before fun clearSavedSelections() = runBlocking {
         val preferences = ApplicationProvider.getApplicationContext<LauncherApplication>().preferences
         val saved = preferences.data.first()
+        preferences.setShowApps(true)
+        preferences.setAppsLayout(dev.personal.tvlauncher.settings.AppsLayout.ROW)
+        preferences.setBackground(dev.personal.tvlauncher.settings.BackgroundTheme.MIDNIGHT)
         saved.favouriteApps.forEach { preferences.favourite(it, false) }
         saved.lists.forEach { preferences.forget(it.key) }
     }
@@ -238,7 +247,7 @@ class FocusLifecycleTest {
             assertEquals("card:all-apps", activity.window.decorView.findFocus()?.tag)
             activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_UP))
             activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_DPAD_UP))
-            assertEquals("settings", activity.window.decorView.findFocus()?.tag)
+            assertEquals("date", activity.window.decorView.findFocus()?.tag)
         }
     }
 
@@ -247,7 +256,7 @@ class FocusLifecycleTest {
             val activity = controller.get()
             pumpUntil { activity.window.decorView.findViewWithTag<View>("card:all-apps") != null }
             pumpFor(200)
-            activity.window.decorView.findViewWithTag<View>("card:all-apps").requestFocus()
+            assertEquals("An empty Apps row must select All apps by default", "card:all-apps", activity.window.decorView.findFocus()?.tag)
             activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_DOWN))
             activity.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_DPAD_DOWN))
             pumpFor(100)
@@ -260,14 +269,14 @@ class FocusLifecycleTest {
         }
     }
 
-    @Test fun savedChannelFocusWaitsForInitialProviderLoad() {
+    @Test fun savedChannelFocusWaitsForInitialProviderLoadWithAppsHidden() {
         val app = ApplicationProvider.getApplicationContext<LauncherApplication>()
         Shadows.shadowOf(app).grantPermissions(READ_TV_LISTINGS)
         val provider = Robolectric.buildContentProvider(FocusProvider::class.java).create().get()
         provider.delayMillis = 300
         ShadowContentResolver.registerProviderInternal("android.media.tv", provider)
         val row = ChannelRow("source.app", 1, "stable", "List", emptyList())
-        runBlocking { app.preferences.select(row) }
+        runBlocking { app.preferences.select(row); app.preferences.setShowApps(false) }
         val saved = android.os.Bundle().apply {
             putString("focusRow", row.key); putString("focusItem", "id:12")
             putInt("focusRowIndex", 1); putInt("focusItemIndex", 1)

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Clear View Launcher</string>
     <string name="settings">Settings</string>
-    <string name="tv_settings">Device</string>
+    <string name="tv_settings">System settings</string>
     <string name="home">Home</string>
     <string name="back_settings">Back to Settings</string>
     <string name="apps">Apps</string>
@@ -9,7 +9,7 @@
     <string name="apps_favourites">Apps &amp; favourites</string>
     <string name="no_tv_apps">No TV apps discovered. Refresh or install a compatible TV app.</string>
     <string name="content">Content</string>
-    <string name="device">DEVICE</string>
+    <string name="device">Device</string>
     <string name="channel_lists">Channel lists</string>
     <string name="channel_access">Channel access</string>
     <string name="set_home">Use as default launcher</string>
@@ -76,4 +76,18 @@
     <string name="home_active">Clear View Launcher is selected as the default launcher. Some TVs may still open their system launcher when you press Home.</string>
     <string name="home_help">Select Clear View Launcher as the default launcher. Some TVs may still open their system launcher when you press Home.</string>
     <string name="add_to_favourites">Add to favourites</string>
+    <string name="background">Background</string>
+    <string name="background_choice">Background: %1$s</string>
+    <string name="background_midnight">Midnight</string>
+    <string name="background_ocean">Ocean</string>
+    <string name="background_forest">Forest</string>
+    <string name="background_plum">Plum</string>
+    <string name="background_burgundy">Burgundy</string>
+    <string name="background_graphite">Graphite</string>
+    <string name="show_apps_home">Show Apps on Home</string>
+    <string name="apps_layout">Apps layout</string>
+    <string name="apps_layout_choice">Apps layout: %1$s</string>
+    <string name="layout_row">Row</string>
+    <string name="layout_grid">Grid</string>
+    <string name="options">Options</string>
 </resources>

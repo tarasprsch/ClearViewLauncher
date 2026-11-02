@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.provider.Settings
 import android.view.*
@@ -42,6 +41,7 @@ class MainActivity : ComponentActivity() {
     }
     private enum class Screen { HOME, APPS, SETTINGS, FAVOURITES, LISTS }
     private var screen = Screen.HOME
+    private lateinit var root: RemoteRoot
     private lateinit var body: LinearLayout
     private lateinit var scroll: ScrollView
     private lateinit var settingsButton: Button
@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
     private var state = HomeState()
     private var dialog: AlertDialog? = null
     private var renderGeneration = 0
+    private var renderedAppColumns = 0
+    private var appliedBackground: BackgroundTheme? = null
     private val rowViews = mutableListOf<RecyclerView>()
     private val rowHeadings = mutableMapOf<String, TextView>()
     private val focusRows = mutableListOf<FocusRow>()
@@ -85,15 +87,16 @@ class MainActivity : ComponentActivity() {
             model.allAppsFocus = FocusAnchor(savedInstanceState.getString("allFocusRow")!!, savedInstanceState.getString("allFocusItem")!!,
                 savedInstanceState.getInt("allFocusRowIndex"), savedInstanceState.getInt("allFocusItemIndex"))
         }
-        val root = RemoteRoot(this) { focused ->
+        root = RemoteRoot(this) { focused ->
             val tag = focused?.tag as? String
             chromeFocus = tag?.takeUnless { it.startsWith("card:") }
         }.apply {
+            tag = "launcher-root"
             orientation = LinearLayout.VERTICAL
             // Park fallback focus here while card rows rebuild, rather than on a header button.
             isFocusableInTouchMode = true
             descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(TvColors.ambient, TvColors.background, TvColors.background))
+            background = backgroundGradient(BackgroundTheme.MIDNIGHT)
             setPadding(dp(48), dp(24), dp(48), dp(24))
             // Keep the scrolling viewport from drawing over the fixed header.
             clipChildren = true; clipToPadding = false
@@ -106,16 +109,43 @@ class MainActivity : ComponentActivity() {
             includeFontPadding = false
         }
         clockBlock.addView(clock)
-        date = label("", 14f).apply { setPadding(0, dp(3), 0, 0) }
-        clockBlock.addView(date); updateDateTime()
+        date = label("", 14f).apply {
+            tag = "date"; isFocusable = true; isClickable = false
+            setPadding(dp(6), dp(3), dp(6), 0)
+            background = dateFocusBackground()
+            setTextColor(android.content.res.ColorStateList(arrayOf(
+                intArrayOf(android.R.attr.state_focused), intArrayOf(),
+            ), intArrayOf(TvColors.text, TvColors.secondary)))
+            setOnKeyListener { _, code, event ->
+                if (screen != Screen.HOME || event.action != KeyEvent.ACTION_DOWN) false
+                else when (code) {
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> { settingsButton.requestFocus(); true }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> { focusHomeContent(); true }
+                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_LEFT -> true
+                    else -> false
+                }
+            }
+        }
+        clockBlock.addView(date, LinearLayout.LayoutParams(-2, -2)); updateDateTime()
         header.addView(clockBlock, LinearLayout.LayoutParams(0, -2, 1f))
         settingsButton = iconAction(getString(R.string.settings), "settings", R.drawable.ic_settings) { navigate(Screen.SETTINGS) }
-        header.addView(settingsButton, LinearLayout.LayoutParams(dp(46), dp(46)).apply { marginEnd = dp(12) })
-        header.addView(action(getString(R.string.tv_settings), "system-settings", R.drawable.ic_device_settings) {
-            openSystem(Intent(Settings.ACTION_SETTINGS))
-        }, LinearLayout.LayoutParams(-2, dp(46)))
+        settingsButton.setOnKeyListener { _, code, event ->
+            if (screen != Screen.HOME || event.action != KeyEvent.ACTION_DOWN) false
+            else when (code) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> { date.requestFocus(); true }
+                KeyEvent.KEYCODE_DPAD_DOWN -> { focusHomeContent(); true }
+                else -> false
+            }
+        }
+        header.addView(settingsButton, LinearLayout.LayoutParams(dp(46), dp(46)))
         root.addView(header, LinearLayout.LayoutParams(-1, dp(56)))
         scroll = ScrollView(this).apply { isFillViewport = true; isFocusable = false; clipChildren = true; clipToPadding = true }
+        scroll.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left != oldRight - oldLeft) scroll.post {
+                if (screen == Screen.HOME && state.preferences.showApps && state.preferences.appsLayout == AppsLayout.GRID &&
+                    homeGridColumns() != renderedAppColumns) render()
+            }
+        }
         body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; clipChildren = false; clipToPadding = false
             setPadding(0, dp(10), 0, dp(8))
@@ -126,7 +156,7 @@ class MainActivity : ComponentActivity() {
         window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (screen != Screen.HOME) navigate(parentScreen())
+                if (screen == Screen.HOME) backOnHome() else navigate(parentScreen())
             }
         })
         lifecycleScope.launch {
@@ -153,7 +183,17 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
     override fun onResume() { super.onResume(); model.refresh(); updateDateTime(); if (screen == Screen.SETTINGS) render() }
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); navigate(Screen.HOME); model.refresh() }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        dialog?.dismiss(); dialog = null
+        // A Home press explicitly restarts selection; ordinary refreshes keep it.
+        // Clear the anchor before rendering so delayed preferences/content also
+        // follow the same first-app, first-channel, then date fallback as startup.
+        model.focus = null; chromeFocus = null; editFallback = null
+        screen = Screen.HOME; scroll.scrollTo(0, 0)
+        render(false)
+        model.refresh()
+    }
     override fun onSaveInstanceState(out: Bundle) {
         out.putString("screen", screen.name)
         model.focus?.let { focus ->
@@ -197,7 +237,7 @@ class MainActivity : ComponentActivity() {
             layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) }
             addView(action(getString(if (parentScreen() == Screen.SETTINGS) R.string.back_settings else R.string.home),
                 "back", R.drawable.ic_back) { navigate(parentScreen()) }, LinearLayout.LayoutParams(-2, dp(46)))
-            addView(label(getString(titleId), 26f).apply {
+            addView(label(getString(titleId), TvTypography.pageTitle).apply {
                 tag = "page-title"; gravity = Gravity.END or Gravity.CENTER_VERTICAL
                 maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; isAccessibilityHeading = true
             }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(24) })
@@ -212,6 +252,11 @@ class MainActivity : ComponentActivity() {
     private fun render(keepFocus: Boolean = true) {
         // Only remote navigation records a chrome selection. Android can temporarily
         // focus the header when children are detached; that must not replace a card anchor.
+        if (appliedBackground != state.preferences.background) {
+            root.background = backgroundGradient(state.preferences.background)
+            appliedBackground = state.preferences.background
+        }
+        date.isFocusable = screen == Screen.HOME
         val oldScroll = if (keepFocus) scroll.scrollY else 0
         val generation = ++renderGeneration
         // Detach adapters to cancel image requests owned by removed rows.
@@ -229,9 +274,17 @@ class MainActivity : ComponentActivity() {
         if (screen == Screen.HOME || screen == Screen.APPS || screen == Screen.FAVOURITES) {
             bodyFocusStops().filter { it !is RecyclerView }.forEach { control ->
                 control.setOnKeyListener { _, code, event ->
-                    if (event.action == KeyEvent.ACTION_DOWN && code in listOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN)) {
-                        moveBodyFocus(control, if (code == KeyEvent.KEYCODE_DPAD_UP) -1 else 1)
-                    } else false
+                    val group = control.parent as? ViewGroup
+                    when {
+                        event.action != KeyEvent.ACTION_DOWN -> false
+                        code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN ->
+                            moveBodyFocus(control, if (code == KeyEvent.KEYCODE_DPAD_UP) -1 else 1)
+                        group?.tag == "home-apps-options" && (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) -> {
+                            group.getChildAt(if (code == KeyEvent.KEYCODE_DPAD_LEFT) 0 else group.childCount - 1).requestFocus()
+                            true
+                        }
+                        else -> false
+                    }
                 }
             }
         }
@@ -245,33 +298,87 @@ class MainActivity : ComponentActivity() {
             if (tagged != null && tagged.isFocusable && tagged.isEnabled) tagged.requestFocus()
             else if (screen == Screen.HOME || screen == Screen.APPS || screen == Screen.FAVOURITES) {
                 val saved = when (screen) {
-                    Screen.HOME -> model.focus
+                    Screen.HOME -> homeAnchor()
                     Screen.FAVOURITES -> model.favouriteAppsFocus
                     else -> model.allAppsFocus
                 }
-                val previous = if (screen == Screen.HOME) saved else saved?.let { anchor ->
-                    // App edits or insertions can relocate a component into another visual row.
-                    val relocated = focusRows.indexOfFirst { anchor.itemKey in it.items }
-                    if (relocated >= 0) anchor.copy(rowKey = focusRows[relocated].key, rowIndex = relocated) else anchor
-                }
+                val previous = relocateAppAnchor(saved)
                 val desired = restoreFocus(previous, focusRows)
-                desired?.let { focusCard(it.rowIndex, it.itemIndex, restore = true) } ?: settingsButton.requestFocus()
+                if (desired != null) focusCard(desired.rowIndex, desired.itemIndex, restore = true)
+                else (if (screen == Screen.HOME) date else settingsButton).requestFocus()
             } else body.findViewWithTag<View>("back")?.requestFocus()
         }
     }
 
+    private fun homeAnchor() = model.focus?.takeUnless {
+        !state.preferences.showApps && (it.rowKey == "apps" || it.rowKey.startsWith("apps:"))
+    }
+
+    private fun relocateAppAnchor(anchor: FocusAnchor?): FocusAnchor? {
+        if (anchor == null) return null
+        // App components can move between grid rows. Channel item IDs are only
+        // unique inside their source row, so their row identity must be retained.
+        if (screen == Screen.HOME && anchor.rowKey != "apps" && !anchor.rowKey.startsWith("apps:")) return anchor
+        val row = focusRows.indexOfFirst { anchor.itemKey in it.items }
+        return if (row >= 0) anchor.copy(rowKey = focusRows[row].key, rowIndex = row) else anchor
+    }
+
+    private fun focusHomeContent() {
+        val desired = restoreFocus(relocateAppAnchor(homeAnchor()), focusRows)
+        if (desired != null) focusCard(desired.rowIndex, desired.itemIndex)
+        else date.requestFocus()
+    }
+
+    private fun backOnHome() {
+        val firstRow = rowViews.indexOfFirst { it.visibility == View.VISIBLE && (it.adapter?.itemCount ?: 0) > 0 }
+        if (firstRow < 0) {
+            // This is an explicit selection, so a refresh must retain it rather than old header focus.
+            chromeFocus = "date"
+            date.requestFocus()
+            return
+        }
+        val rowIndex = rowViews.indexOfFirst { it.hasFocus() }
+        val recycler = rowViews.getOrNull(rowIndex)
+        val item = window.decorView.findFocus()?.let { recycler?.findContainingItemView(it) }
+        val position = item?.let { recycler?.getChildAdapterPosition(it) } ?: RecyclerView.NO_POSITION
+        if (rowIndex == firstRow && position == 0) return
+        val targetRow = if (position > 0) rowIndex else firstRow
+        val row = focusRows[targetRow]
+        // Record the explicit destination before posting focus: a refresh may rebuild
+        // these rows and invalidate the pending request, then restore this anchor.
+        chromeFocus = null
+        model.focus = FocusAnchor(row.key, row.items.first(), targetRow, 0)
+        focusCard(targetRow, 0)
+    }
+
+    private fun homeGridColumns(): Int {
+        val viewport = scroll.width.takeIf { it > 0 }
+            ?: (resources.displayMetrics.widthPixels - root.paddingLeft - root.paddingRight)
+        val panel = cardGeometry(CardPresentation.COMPACT_APP).width + dp(4)
+        return ((viewport - dp(64)).coerceAtLeast(0) / panel).coerceAtLeast(1)
+    }
+
     private fun renderHome() {
-        rowHeading("apps", getString(R.string.apps))
-        val installed = state.apps.associateBy { it.key }
-        val entries = state.preferences.favouriteApps.map { key ->
-            val app = installed[key]
-            CardEntry(key, app?.title ?: getString(R.string.unavailable_app_title, key.substringBefore('/')), drawable = app?.banner ?: app?.icon, logo = app?.banner == null,
-                presentation = CardPresentation.COMPACT_APP,
-                open = { app?.let { launch(graph.launcher.app(it.component)) }
-                    ?: launch(LaunchResult.Failed(R.string.error_favourite_unavailable)) })
-        } + CardEntry("all-apps", getString(R.string.all_apps), drawable = getDrawable(R.drawable.ic_grid), logo = true,
-            presentation = CardPresentation.COMPACT_APP, open = { navigate(Screen.APPS) })
-        addRow("apps", entries)
+        renderedAppColumns = 0
+        if (state.preferences.showApps) {
+            val installed = state.apps.associateBy { it.key }
+            val entries = state.preferences.favouriteApps.map { key ->
+                val app = installed[key]
+                CardEntry(key, app?.title ?: getString(R.string.unavailable_app_title, key.substringBefore('/')),
+                    drawable = app?.banner ?: app?.icon, logo = app?.banner == null, presentation = CardPresentation.COMPACT_APP,
+                    open = { app?.let { launch(graph.launcher.app(it.component)) }
+                        ?: launch(LaunchResult.Failed(R.string.error_favourite_unavailable)) })
+            } + CardEntry("all-apps", getString(R.string.all_apps), drawable = getDrawable(R.drawable.ic_grid), logo = true,
+                presentation = CardPresentation.COMPACT_APP, open = { navigate(Screen.APPS) })
+            if (state.preferences.appsLayout == AppsLayout.GRID) {
+                renderedAppColumns = homeGridColumns()
+                rowHeading("apps:0", getString(R.string.apps))
+                entries.chunked(renderedAppColumns).forEachIndexed { index, row -> addRow("apps:$index", row) }
+            } else {
+                rowHeading("apps", getString(R.string.apps))
+                addRow("apps", entries)
+            }
+        }
         if (state.channelState != ChannelLoadState.PermissionDenied) {
             reconcileLists(state.preferences.lists, state.lastRows).forEach { managed ->
                 val row = managed.row
@@ -325,29 +432,42 @@ class MainActivity : ComponentActivity() {
                 // A temporary fallback while the first snapshot loads must not erase a saved channel selection.
                 val awaitingSavedRow = restoringFocus && state.channelState == ChannelLoadState.Loading &&
                     model.focus?.rowKey?.let { saved -> focusRows.none { it.key == saved } } == true
-                if (!awaitingSavedRow) model.focus = anchor
+                // All apps is the only card before preferences arrive. Do not save
+                // that automatic fallback as the user's initial selection.
+                val awaitingPreferences = restoringFocus && !state.preferencesLoaded
+                if (!awaitingSavedRow && !awaitingPreferences) model.focus = anchor
             } else if (screen == Screen.APPS) model.allAppsFocus = anchor
             else if (screen == Screen.FAVOURITES) model.favouriteAppsFocus = anchor
         }, { direction ->
             moveBodyFocus(recycler, direction)
-        })
+        }, confineHorizontalFocus = screen == Screen.HOME)
         body.addView(recycler, LinearLayout.LayoutParams(-1, geometry.rowHeight))
     }
 
-    private fun bodyFocusStops(): List<View> = (0 until body.childCount).mapNotNull { index ->
+    private fun bodyFocusStops(): List<View> = (0 until body.childCount).flatMap { index ->
         val child = body.getChildAt(index)
-        if (child.tag == "page-header") child.findViewWithTag<View>("back") else child
+        when {
+            child.tag == "page-header" -> listOfNotNull(child.findViewWithTag<View>("back"))
+            child.tag == "home-apps-options" && child is ViewGroup -> (0 until child.childCount).map { child.getChildAt(it) }
+            else -> listOf(child)
+        }
     }.filter { it.visibility == View.VISIBLE && it.isEnabled &&
         (it is RecyclerView && (it.adapter?.itemCount ?: 0) > 0 || it.isFocusable) }
 
     private fun moveBodyFocus(from: View, direction: Int): Boolean {
-        val stops = bodyFocusStops()
+        val group = from.parent as? ViewGroup
+        // Up/Down leave the whole two-column row; Left/Right move within it.
+        val stops = bodyFocusStops().filter { group?.tag != "home-apps-options" || it === from || it.parent !== group }
         val target = stops.getOrNull(stops.indexOf(from) + direction)
         if (target is RecyclerView) {
             val index = rowViews.indexOf(target)
-            focusCard(index, rowPositions[focusRows[index].key] ?: 0)
+            val fromRow = rowViews.indexOf(from)
+            val sameGrid = screen == Screen.HOME && focusRows.getOrNull(fromRow)?.key?.startsWith("apps:") == true &&
+                focusRows[index].key.startsWith("apps:")
+            val column = if (sameGrid) rowPositions[focusRows[fromRow].key] else rowPositions[focusRows[index].key]
+            focusCard(index, column ?: 0)
         } else if (target != null) target.requestFocus()
-        else if (direction < 0) settingsButton.requestFocus()
+        else if (direction < 0) (if (screen == Screen.HOME) date else settingsButton).requestFocus()
         return true
     }
 
@@ -362,10 +482,10 @@ class MainActivity : ComponentActivity() {
             val view = recycler.findViewHolderForAdapterPosition(index)?.itemView ?: return
             restoringFocus = restore
             try {
-                if (view.requestFocus() && screen == Screen.HOME && heading != null) {
+                if (view.requestFocus() && screen == Screen.HOME) {
                     // Reveal the section as a unit; child focus alone omits its heading.
                     scroll.requestChildRectangleOnScreen(body, android.graphics.Rect(
-                        0, (heading.top - dp(8)).coerceAtLeast(0), body.width, recycler.bottom,
+                        0, ((heading?.top ?: recycler.top) - dp(8)).coerceAtLeast(0), body.width, recycler.bottom,
                     ), true)
                 }
             } finally { restoringFocus = false }
@@ -380,7 +500,7 @@ class MainActivity : ComponentActivity() {
         val columns = LinearLayout(this)
         fun group(title: String): LinearLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(label(title, 14f))
+            addView(settingsSection(title))
             columns.addView(this, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(16) })
         }
         fun setting(parent: LinearLayout, text: String, key: String, icon: Int, block: () -> Unit): Button {
@@ -394,7 +514,7 @@ class MainActivity : ComponentActivity() {
         }
         fun statusSetting(parent: LinearLayout, text: String, key: String, icon: Int, done: Boolean, explanation: String, block: () -> Unit) {
             setting(parent, text, key, icon, block).apply { isEnabled = !done; alpha = if (done) 0.45f else 1f }
-            parent.addView(label(explanation, 13f).apply {
+            parent.addView(label(explanation, TvTypography.description).apply {
                 tag = "$key-status"
                 setPadding(dp(12), 0, dp(12), dp(12))
             })
@@ -403,7 +523,13 @@ class MainActivity : ComponentActivity() {
         setting(content, getString(R.string.apps_favourites), "settings-apps", R.drawable.ic_grid) { navigate(Screen.FAVOURITES) }
         setting(content, getString(R.string.channel_lists), "settings-lists", R.drawable.ic_lists) { navigate(Screen.LISTS) }
         setting(content, getString(R.string.language), "language", R.drawable.ic_language) { chooseLanguage() }
+        setting(content, getString(R.string.background_choice, getString(state.preferences.background.titleRes)), "background", R.drawable.ic_palette) {
+            chromeFocus = "background"; chooseBackground()
+        }
         val device = group(getString(R.string.device))
+        setting(device, getString(R.string.tv_settings), "system-settings", R.drawable.ic_device_settings) {
+            openSystem(Intent(Settings.ACTION_SETTINGS))
+        }.apply { (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(20) }
         val hasAccess = checkSelfPermission(READ_TV_LISTINGS) == PackageManager.PERMISSION_GRANTED
         statusSetting(device, getString(R.string.channel_access), "permission", R.drawable.ic_access, hasAccess,
             getString(if (hasAccess) R.string.channel_access_granted else R.string.channel_access_help)) { requestChannels() }
@@ -439,7 +565,7 @@ class MainActivity : ComponentActivity() {
     private fun renderFavourites() {
         val installed = state.apps.associateBy { it.key }
         val favourites = state.preferences.favouriteApps
-        body.addView(label(getString(R.string.favorite), 19f))
+        body.addView(settingsSection(getString(R.string.favorite)))
         if (favourites.isEmpty()) body.addView(notice(getString(R.string.no_favourites)))
         else addRow("favourites", favourites.map { key ->
             val app = installed[key]
@@ -447,15 +573,37 @@ class MainActivity : ComponentActivity() {
             CardEntry(key, title, drawable = app?.banner ?: app?.icon, logo = app?.banner == null, presentation = CardPresentation.COMPACT_APP,
                 open = { editApp(key, title, true) })
         })
-        body.addView(label(getString(R.string.available_apps), 19f))
+        body.addView(settingsSection(getString(R.string.available_apps)))
         val available = state.apps.filterNot { it.key in favourites }
-        if (available.isEmpty()) body.addView(label(getString(R.string.no_available_apps), 14f))
+        if (available.isEmpty()) body.addView(label(getString(R.string.no_available_apps), TvTypography.description))
         available.chunked(5).forEachIndexed { index, apps ->
             addRow("available-apps:$index", apps.map { app ->
                 CardEntry(app.key, app.title, drawable = app.banner ?: app.icon, logo = app.banner == null, presentation = CardPresentation.COMPACT_APP,
                     open = { editApp(app.key, app.title, false) })
             })
         }
+        body.addView(settingsSection(getString(R.string.options), gap = 24))
+        val homeOptions = LinearLayout(this).apply {
+            tag = "home-apps-options"; orientation = LinearLayout.HORIZONTAL
+            clipChildren = false; clipToPadding = false
+        }
+        homeOptions.addView(action(getString(R.string.apps_layout_choice,
+            getString(if (state.preferences.appsLayout == AppsLayout.ROW) R.string.layout_row else R.string.layout_grid)),
+            "home-apps-layout", R.drawable.ic_grid) {
+            chromeFocus = "home-apps-layout"; chooseAppsLayout()
+        }.apply { minHeight = dp(60) }, LinearLayout.LayoutParams(0, -1, 1f).apply { marginEnd = dp(8) })
+        homeOptions.addView(Switch(this).apply {
+            text = getString(R.string.show_apps_home); tag = "home-apps-visible"
+            textSize = TvTypography.item; typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextColor(controlTextColors()); background = focusBackground(context, control = true)
+            isChecked = state.preferences.showApps; isFocusable = true; showText = false
+            setPadding(dp(18), dp(8), dp(18), dp(8)); minHeight = dp(60); maxLines = 2
+            focusVisuals()
+            setOnCheckedChangeListener { _, checked ->
+                chromeFocus = "home-apps-visible"; model.setShowApps(checked)
+            }
+        }, LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = dp(8) })
+        body.addView(homeOptions, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
     }
 
     private fun editApp(key: String, title: String, favourite: Boolean) {
@@ -475,25 +623,32 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    private fun channelSection(title: String, gap: Int = 0) = label(title, 22f).apply {
+    private fun settingsSection(title: String, gap: Int = 0) = label(title, TvTypography.section).apply {
+        setTextColor(TvColors.secondary)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         isAccessibilityHeading = true
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(gap); bottomMargin = dp(10) }
+    }
+
+    private fun settingsItem(text: String, size: Float = TvTypography.item) = label(text, size).apply {
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        setTextColor(TvColors.text)
     }
 
     private fun renderLists() {
         channelStatus()
         val readable = state.channelState is ChannelLoadState.Ready
         val managed = reconcileLists(state.preferences.lists, state.lastRows)
-        body.addView(channelSection(getString(R.string.selected_lists)))
+        body.addView(settingsSection(getString(R.string.selected_lists)))
         if (managed.isEmpty()) body.addView(notice(getString(R.string.no_selected_lists)))
         managed.forEachIndexed { index, entry ->
             val panel = settingsPanel("selected:${entry.saved.key}")
             val line = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-            line.addView(label((index + 1).toString(), 14f).apply {
+            line.addView(label((index + 1).toString(), TvTypography.description).apply {
                 gravity = Gravity.CENTER; background = roundedSurface(TvColors.ambient, 10)
             }, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
             val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            details.addView(label(channelListTitle(entry.saved.ownerPackage, entry.saved.title), 18f).apply {
+            details.addView(settingsItem(channelListTitle(entry.saved.ownerPackage, entry.saved.title)).apply {
                 maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END
             })
             val status = when {
@@ -502,7 +657,7 @@ class MainActivity : ComponentActivity() {
                 entry.row.items.isEmpty() -> getString(R.string.empty_list_status)
                 else -> resources.getQuantityString(R.plurals.published_items, entry.row.items.size, entry.row.items.size)
             }
-            details.addView(label(status, 13f))
+            details.addView(label(status, TvTypography.description))
             line.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
             val prefix = "list:${entry.saved.key}"
             val fallback = "$prefix:forget"
@@ -515,7 +670,7 @@ class MainActivity : ComponentActivity() {
             panel.addView(line); body.addView(panel)
         }
         if (readable) {
-            body.addView(channelSection(getString(R.string.available_lists), gap = 24))
+            body.addView(settingsSection(getString(R.string.available_lists), gap = 24))
             val savedKeys = state.preferences.lists.map { it.key }.toSet()
             val available = state.lastRows.filterNot { it.key in savedKeys }
             if (available.isEmpty()) body.addView(notice(if (state.lastRows.isEmpty())
@@ -536,7 +691,7 @@ class MainActivity : ComponentActivity() {
                     setImageDrawable(appIcon); scaleType = ImageView.ScaleType.FIT_CENTER
                     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 }, LinearLayout.LayoutParams(dp(28), dp(28)).apply { marginEnd = dp(12) })
-                groupHeader.addView(label(sourceName(owner), 18f).apply {
+                groupHeader.addView(settingsItem(sourceName(owner), TvTypography.group).apply {
                     setTextColor(TvColors.accent); isAccessibilityHeading = true
                 }, LinearLayout.LayoutParams(0, -2, 1f))
                 panel.addView(groupHeader)
@@ -547,8 +702,8 @@ class MainActivity : ComponentActivity() {
                         setPadding(dp(12), dp(8), dp(8), dp(8))
                     }
                     val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                    details.addView(label(channelListTitle(row.ownerPackage, row.title), 16f).apply { setTextColor(TvColors.text) })
-                    details.addView(label(resources.getQuantityString(R.plurals.published_items, row.items.size, row.items.size), 12f))
+                    details.addView(settingsItem(channelListTitle(row.ownerPackage, row.title)))
+                    details.addView(label(resources.getQuantityString(R.plurals.published_items, row.items.size, row.items.size), TvTypography.description))
                     line.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
                     line.addView(editAction(getString(R.string.add), "add:${row.key}", "list:${row.key}:forget") { model.select(row) },
                         LinearLayout.LayoutParams(dp(110), -2).apply { marginStart = dp(12) })
@@ -562,7 +717,7 @@ class MainActivity : ComponentActivity() {
 
     private fun channelStatus() {
         when (val load = state.channelState) {
-            ChannelLoadState.Loading -> if (state.lastRows.isEmpty()) body.addView(label(getString(R.string.loading_channels), 14f))
+            ChannelLoadState.Loading -> if (state.lastRows.isEmpty()) body.addView(label(getString(R.string.loading_channels), TvTypography.description))
             ChannelLoadState.PermissionDenied -> {
                 body.addView(notice(getString(R.string.channel_permission_intro)))
                 body.addView(action(getString(R.string.allow_channels), "allow", R.drawable.ic_access) { requestChannels() })
@@ -573,6 +728,44 @@ class MainActivity : ComponentActivity() {
             }
             is ChannelLoadState.Ready -> Unit
         }
+    }
+
+    private fun chooseAppsLayout() {
+        val choices = arrayOf(getString(R.string.layout_row), getString(R.string.layout_grid))
+        dialog?.dismiss()
+        dialog = AlertDialog.Builder(this).setTitle(R.string.apps_layout)
+            .setSingleChoiceItems(choices, state.preferences.appsLayout.ordinal) { selected, index ->
+                selected.dismiss(); model.setAppsLayout(AppsLayout.entries[index])
+            }.setNegativeButton(R.string.cancel, null).create().also { created ->
+                created.setOnDismissListener { if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) render() }
+                created.show()
+            }
+    }
+
+    private fun chooseBackground() {
+        val themes = BackgroundTheme.entries.toList()
+        val choices = object : ArrayAdapter<BackgroundTheme>(this, android.R.layout.simple_list_item_single_choice, themes) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent) as TextView
+                val theme = themes[position]
+                view.text = getString(theme.titleRes)
+                val swatch = backgroundGradient(theme).apply {
+                    cornerRadius = dp(6).toFloat(); setStroke(dp(1), TvColors.secondary)
+                    setBounds(0, 0, dp(52), dp(28))
+                }
+                view.setCompoundDrawablesRelative(swatch, null, null, null)
+                view.compoundDrawablePadding = dp(12)
+                return view
+            }
+        }
+        dialog?.dismiss()
+        dialog = AlertDialog.Builder(this).setTitle(R.string.background)
+            .setSingleChoiceItems(choices, themes.indexOf(state.preferences.background)) { selected, index ->
+                selected.dismiss(); model.setBackground(themes[index])
+            }.setNegativeButton(R.string.cancel, null).create().also { created ->
+                created.setOnDismissListener { if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) render() }
+                created.show()
+            }
     }
 
     private fun chooseLanguage() {

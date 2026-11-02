@@ -48,6 +48,9 @@ class HomeViewModel(
         HomeState(discovered.data, channel.first, channel.second, saved.data, saved.loaded, saved.error ?: discovered.error)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), HomeState())
 
+    fun setShowApps(visible: Boolean) = mutate { preferences.setShowApps(visible) }
+    fun setAppsLayout(layout: AppsLayout) = mutate { preferences.setAppsLayout(layout) }
+    fun setBackground(theme: BackgroundTheme) = mutate { preferences.setBackground(theme) }
     fun refresh() { apps.refresh(); channels.refresh() }
     fun favourite(component: String, enabled: Boolean) = mutate { preferences.favourite(component, enabled) }
     fun moveApp(component: String, delta: Int) = mutate { preferences.moveApp(component, delta) }

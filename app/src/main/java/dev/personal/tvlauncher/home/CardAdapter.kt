@@ -19,6 +19,7 @@ class CardAdapter(
     private val entries: List<CardEntry>,
     private val focused: (Int, String) -> Unit,
     private val vertical: (Int) -> Boolean,
+    private val confineHorizontalFocus: Boolean = false,
 ) : RecyclerView.Adapter<CardAdapter.Holder>() {
     class Holder(val card: ContentCard) : RecyclerView.ViewHolder(card)
     override fun getItemCount(): Int = entries.size
@@ -39,6 +40,8 @@ class CardAdapter(
                     when (key) {
                         android.view.KeyEvent.KEYCODE_DPAD_UP -> vertical(-1)
                         android.view.KeyEvent.KEYCODE_DPAD_DOWN -> vertical(1)
+                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> confineHorizontalFocus && position == 0
+                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> confineHorizontalFocus && position == entries.lastIndex
                         else -> false
                     }
                 } else false

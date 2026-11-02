@@ -4,7 +4,13 @@ import dev.personal.tvlauncher.channels.ChannelRow
 
 data class SavedList(val key: String, val ownerPackage: String, val title: String, val visible: Boolean = true)
 data class ManagedList(val saved: SavedList, val row: ChannelRow?)
-data class LauncherPreferences(val favouriteApps: List<String> = emptyList(), val lists: List<SavedList> = emptyList())
+data class LauncherPreferences(
+    val favouriteApps: List<String> = emptyList(),
+    val lists: List<SavedList> = emptyList(),
+    val showApps: Boolean = true,
+    val appsLayout: AppsLayout = AppsLayout.ROW,
+    val background: BackgroundTheme = BackgroundTheme.MIDNIGHT,
+)
 
 fun selectList(saved: List<SavedList>, row: ChannelRow): List<SavedList> =
     if (saved.any { it.key == row.key }) setVisibility(saved, row.key, true)

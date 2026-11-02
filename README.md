@@ -18,7 +18,7 @@ Keep your favourites within reach and make room for the content you enjoy:
 - **Your apps, up front.** Choose your favourite TV apps, arrange them in your preferred order and open the rest from All apps.
 - **Easy to see.** Browse artwork with a clear selection border, larger focused tiles and titles that appear as you move through them.
 - **Made for your remote.** Use the directional buttons to browse and press OK to open an app or content item.
-- **Simple to personalise.** Clean, simple design with clear, easy-to-use settings.
+- **Simple to personalise.** Clean, simple design with clear, easy-to-use settings. Choose a background colour and show your apps in a row or grid, or hide them for a home screen focused on channel lists.
 
 **Ad-free and private.** Clear View Launcher adds no advertising, requires no launcher account and collects no analytics. Your preferences stay on your TV. Content opens in the app that provides it, using that app's playback and account settings.
 
@@ -30,7 +30,7 @@ Available channel lists depend on what your installed apps share with the home s
 
 Requires **Android TV 14 or later**.
 
-1. Copy the `ClearViewLauncher-0.7.10-release.apk` file to your TV using a USB drive or a file-transfer app.
+1. Copy the `ClearViewLauncher-0.8.0-release.apk` file to your TV using a USB drive or a file-transfer app.
 2. Open the APK with a file manager on your TV. If prompted, allow that file manager to install unknown apps, then select **Install**.
 3. Open **Clear View Launcher** from your TV's apps screen.
 4. In the launcher's **Settings**, enable **Channel access**, then open **Channel lists** and add the lists you want to see.

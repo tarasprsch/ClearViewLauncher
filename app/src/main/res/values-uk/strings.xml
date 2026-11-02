@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Clear View Launcher</string>
     <string name="settings">Налаштування</string>
-    <string name="tv_settings">Пристрій</string>
+    <string name="tv_settings">Системні налаштування</string>
     <string name="home">Головний екран</string>
     <string name="back_settings">До налаштувань</string>
     <string name="apps">Застосунки</string>
@@ -9,7 +9,7 @@
     <string name="apps_favourites">Застосунки й обране</string>
     <string name="no_tv_apps">ТВ-застосунків не знайдено. Оновіть вміст або встановіть сумісний ТВ-застосунок.</string>
     <string name="content">Вміст</string>
-    <string name="device">ПРИСТРІЙ</string>
+    <string name="device">Пристрій</string>
     <string name="channel_lists">Списки каналів</string>
     <string name="channel_access">Доступ до каналів</string>
     <string name="set_home">Зробити типовим лаунчером</string>
@@ -78,4 +78,18 @@
     <string name="home_active">Clear View Launcher вибрано типовим лаунчером. На деяких телевізорах кнопка Home усе одно відкриває системний лаунчер.</string>
     <string name="home_help">Виберіть Clear View Launcher типовим лаунчером. На деяких телевізорах кнопка Home усе одно відкриває системний лаунчер.</string>
     <string name="add_to_favourites">Додати до обраного</string>
+    <string name="background">Фон</string>
+    <string name="background_choice">Фон: %1$s</string>
+    <string name="background_midnight">Нічний синій</string>
+    <string name="background_ocean">Океан</string>
+    <string name="background_forest">Лісовий</string>
+    <string name="background_plum">Сливовий</string>
+    <string name="background_burgundy">Бордовий</string>
+    <string name="background_graphite">Графітовий</string>
+    <string name="show_apps_home">Показувати застосунки на головному екрані</string>
+    <string name="apps_layout">Вигляд застосунків</string>
+    <string name="apps_layout_choice">Вигляд застосунків: %1$s</string>
+    <string name="layout_row">Рядок</string>
+    <string name="layout_grid">Сітка</string>
+    <string name="options">Параметри</string>
 </resources>

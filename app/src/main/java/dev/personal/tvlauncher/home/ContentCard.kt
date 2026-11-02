@@ -27,6 +27,7 @@ class ContentCard(context: Context) : LinearLayout(context) {
     }
     private var request: Disposable? = null
     private var binding = 0L
+    private var focusScale = CARD_FOCUS_SCALE
     init {
         orientation = VERTICAL; gravity = Gravity.CENTER
         clipChildren = false; clipToPadding = false
@@ -44,8 +45,8 @@ class ContentCard(context: Context) : LinearLayout(context) {
         artFrame.addView(art, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
         addView(artFrame, LayoutParams(-1, context.dp(128)))
         title.apply {
-            textSize = 16f; setTextColor(TvColors.text); gravity = Gravity.CENTER_VERTICAL
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            textSize = TvTypography.cardCaption; setTextColor(TvColors.text); gravity = Gravity.CENTER_VERTICAL
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             maxLines = 2; ellipsize = TextUtils.TruncateAt.END
         }
         addView(title, LayoutParams(-1, context.dp(48)))
@@ -59,13 +60,14 @@ class ContentCard(context: Context) : LinearLayout(context) {
     private fun showFocus(animate: Boolean) {
         title.visibility = if (isFocused) VISIBLE else INVISIBLE
         artFrame.foreground.alpha = if (isFocused) 255 else 0
-        applyFocusEffect(isFocused, scale = CARD_FOCUS_SCALE, animate = animate)
+        applyFocusEffect(isFocused, scale = focusScale, animate = animate)
     }
 
     fun bind(label: String, uri: String?, drawable: Drawable?, logo: Boolean, ratio: Float, presentation: CardPresentation = CardPresentation.CONTENT) {
         recycle()
         val currentBinding = binding
         val geometry = context.cardGeometry(presentation, ratio)
+        focusScale = geometry.focusScale
         val isApp = presentation != CardPresentation.CONTENT
         val iconOnly = isApp && logo
         val sidePadding = context.dp(if (presentation == CardPresentation.APP) 4 else 2)
@@ -75,8 +77,8 @@ class ContentCard(context: Context) : LinearLayout(context) {
         val width = geometry.width
         title.text = label; contentDescription = label
         title.maxLines = if (isApp) 1 else 2
-        title.textSize = 14f
-        title.gravity = Gravity.CENTER
+        title.textSize = TvTypography.cardCaption
+        title.gravity = if (isApp) Gravity.CENTER else (Gravity.TOP or Gravity.CENTER_HORIZONTAL)
         title.includeFontPadding = true
         title.setPadding(context.dp(2), context.dp(6), context.dp(2), context.dp(2))
         title.layoutParams = LayoutParams(-1, geometry.titleHeight)

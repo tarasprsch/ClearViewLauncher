@@ -25,6 +25,10 @@ class PreferencesRepository(private val store: DataStore<Preferences>) {
         }
     }
 
+    suspend fun setShowApps(visible: Boolean) = update { it.copy(showApps = visible) }
+    suspend fun setAppsLayout(layout: AppsLayout) = update { it.copy(appsLayout = layout) }
+    suspend fun setBackground(theme: BackgroundTheme) = update { it.copy(background = theme) }
+
     suspend fun favourite(component: String, enabled: Boolean) = update { old ->
         old.copy(favouriteApps = if (enabled) (old.favouriteApps + component).distinct() else old.favouriteApps - component)
     }

@@ -15,6 +15,15 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+object TvTypography {
+    const val pageTitle = 26f
+    const val section = 18f
+    const val group = 14f
+    const val item = 16f
+    const val cardCaption = 12f
+    const val description = 13f
+}
+
 object TvColors {
     val background = Color.rgb(12, 20, 33)
     val ambient = Color.rgb(27, 52, 81)
@@ -28,6 +37,11 @@ object TvColors {
 
 fun Context.roundedSurface(color: Int, radius: Int = 16): GradientDrawable = GradientDrawable().apply {
     setColor(color); cornerRadius = dp(radius).toFloat()
+}
+
+fun Context.dateFocusBackground() = StateListDrawable().apply {
+    addState(intArrayOf(android.R.attr.state_focused), roundedSurface(Color.argb(20, 192, 230, 255), 8))
+    addState(intArrayOf(), roundedSurface(Color.TRANSPARENT, 8))
 }
 
 fun focusBackground(context: Context, control: Boolean = false): StateListDrawable {
@@ -46,12 +60,14 @@ fun Context.label(text: String, size: Float = 18f): TextView = TextView(this).ap
     includeFontPadding = false
     setPadding(0, dp(3), 0, dp(3))
 }
-fun Context.action(text: String, key: String, icon: Int? = null, block: () -> Unit): Button = Button(this).apply {
-    this.text = text; tag = key; isAllCaps = false; textSize = 16f
-    val colors = ColorStateList(arrayOf(
+internal fun controlTextColors() = ColorStateList(arrayOf(
         intArrayOf(-android.R.attr.state_enabled), intArrayOf(android.R.attr.state_pressed),
         intArrayOf(android.R.attr.state_focused), intArrayOf(),
     ), intArrayOf(TvColors.secondary, TvColors.background, TvColors.background, TvColors.text))
+
+fun Context.action(text: String, key: String, icon: Int? = null, block: () -> Unit): Button = Button(this).apply {
+    this.text = text; tag = key; isAllCaps = false; textSize = TvTypography.item
+    val colors = controlTextColors()
     setTextColor(colors); background = focusBackground(context, control = true)
     typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
     stateListAnimator = null
@@ -88,7 +104,7 @@ fun View.focusVisuals(scale: Float = 1f) {
     }
 }
 
-fun Context.notice(text: String): TextView = label(text, 14f).apply {
+fun Context.notice(text: String): TextView = label(text, TvTypography.description).apply {
     background = roundedSurface(TvColors.surface, 12)
     setPadding(dp(16), dp(12), dp(16), dp(12))
     setLineSpacing(dp(3).toFloat(), 1f)

@@ -16,8 +16,8 @@ android {
         applicationId = "dev.personal.tvlauncher"
         minSdk = 34
         targetSdk = 36
-        versionCode = 19
-        versionName = "0.7.10"
+        versionCode = 21
+        versionName = "0.8.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     if (signing.isNotEmpty()) {
