@@ -376,6 +376,54 @@ class HomeCustomizationTest {
         }
     }
 
+    @Test fun homeIntentResetsEveryChannelRowBeforeNavigatingDownAgain() {
+        val rows = (0..2).map { row ->
+            ChannelRow("source.app", row.toLong(), "row$row", "Channel $row", (0..2).map { item ->
+                ChannelItem((row * 10 + item).toLong(), "Channel $row item $item", null)
+            })
+        }
+        for (layout in AppsLayout.entries) for (showApps in listOf(true, false)) {
+            Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+                val activity = controller.get()
+                val snapshot = HomeState(lastRows = rows, channelState = ChannelLoadState.Ready(rows),
+                    preferences = LauncherPreferences(favouriteApps = listOf("app/.Main"), appsLayout = layout,
+                        showApps = showApps, lists = rows.map { SavedList(it.key, it.ownerPackage, it.title) }),
+                    preferencesLoaded = true)
+                display(activity, snapshot); settle(activity)
+                // Remember item #3 in every channel, ending in the first channel.
+                for (id in listOf(22, 12, 2)) {
+                    activity.window.decorView.findViewWithTag<View>("card:id:$id").requestFocus()
+                }
+                controller.newIntent(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
+                // A content refresh must not revive any pre-Home row selections.
+                display(activity, snapshot, true); settle(activity)
+                assertEquals(if (showApps) "card:app/.Main" else "card:id:0", activity.window.decorView.findFocus()?.tag)
+                if (showApps) { key(activity, KeyEvent.KEYCODE_DPAD_DOWN); settle(activity) }
+                assertEquals("Home must reset the first channel ($layout, Apps=$showApps)", "card:id:0", activity.window.decorView.findFocus()?.tag)
+                key(activity, KeyEvent.KEYCODE_DPAD_DOWN); settle(activity)
+                assertEquals("Home must also reset the second channel", "card:id:10", activity.window.decorView.findFocus()?.tag)
+                key(activity, KeyEvent.KEYCODE_DPAD_DOWN); settle(activity)
+                assertEquals("Home must also reset the third channel", "card:id:20", activity.window.decorView.findFocus()?.tag)
+            }
+        }
+    }
+
+    @Test fun channelRowSelectionsSurviveOrdinaryNavigationAndContentRefresh() {
+        val row = ChannelRow("source.app", 1, "one", "Channel", (0..2).map { ChannelItem(it.toLong(), "Item $it", null) })
+        Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            val snapshot = HomeState(lastRows = listOf(row), channelState = ChannelLoadState.Ready(listOf(row)),
+                preferences = LauncherPreferences(lists = listOf(SavedList(row.key, row.ownerPackage, row.title))), preferencesLoaded = true)
+            display(activity, snapshot); settle(activity)
+            activity.window.decorView.findViewWithTag<View>("card:id:2").requestFocus()
+            key(activity, KeyEvent.KEYCODE_DPAD_UP); settle(activity)
+            display(activity, snapshot, true); settle(activity)
+            assertEquals("card:all-apps", activity.window.decorView.findFocus()?.tag)
+            key(activity, KeyEvent.KEYCODE_DPAD_DOWN); settle(activity)
+            assertEquals("Without Home, the channel must retain its remembered item", "card:id:2", activity.window.decorView.findFocus()?.tag)
+        }
+    }
+
     @Test fun homeIntentUsesStartupFallbackForNoFavouritesHiddenAppsAndEmptyChannels() {
         val empty = ChannelRow("source.app", 1, "empty", "Empty", emptyList())
         val populated = ChannelRow("source.app", 2, "filled", "Filled", listOf(ChannelItem(21, "First", null), ChannelItem(22, "Second", null)))

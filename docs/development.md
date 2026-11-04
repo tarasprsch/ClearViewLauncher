@@ -46,7 +46,7 @@ Updates use `adb install -r` with a higher version code and the same signing key
 
 ## Remote and recovery
 
-- Pressing Home returns to the first favourite app (or All apps). If Apps is hidden, Home selects the first nonempty channel item, or the date when there is no content. Ordinary content refreshes retain the current selection.
+- Pressing Home returns to the first favourite app (or All apps). If Apps is hidden, Home selects the first nonempty channel item, or the date when there is no content. Home also resets remembered channel-row positions, so entering any channel list starts at its first item. Ordinary navigation and content refreshes retain remembered selections.
 - D-pad moves across cards and between rows. OK opens content. Home and All apps have no long-press editing.
 - On Home, Up from the top content row focuses the date; OK has no action there. Right reaches Settings and Down returns to the selected card. A blank Home defaults to the date.
 - **Settings > Background** offers six saved colour gradients, including the original Midnight background.

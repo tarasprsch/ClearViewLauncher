@@ -189,6 +189,7 @@ class MainActivity : ComponentActivity() {
         // A Home press explicitly restarts selection; ordinary refreshes keep it.
         // Clear the anchor before rendering so delayed preferences/content also
         // follow the same first-app, first-channel, then date fallback as startup.
+        rowPositions.clear()
         model.focus = null; chromeFocus = null; editFallback = null
         screen = Screen.HOME; scroll.scrollTo(0, 0)
         render(false)

@@ -1,19 +1,19 @@
 # Verification
 
-Latest recorded checks: 2026-11-03, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
+Latest recorded checks: 2026-11-05, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
 
 ## Automated checks
 
 | Check | Last run | Result |
 | --- | --- | --- |
-| Host unit suite | 0.8.0 | 104 tests across 16 suites; no failures, errors or skips. |
-| Caption, settings and customization suites | 0.8.0 | 46 tests across three suites; no failures, errors or skips. |
+| Host unit suite | 0.8.0 | 106 tests across 16 suites; no failures, errors or skips. |
+| Caption, settings and customization suites | 0.8.0 | 48 tests across three suites; no failures, errors or skips. |
 | Signed release build | 0.8.0 | APK assembled and verified with the original signer. |
 | Debug build | 0.7.10 | APK assembled successfully. |
 | Debug lint | 0.8.0 | 0 errors, 14 warnings. |
 | Instrumentation APK assembly | 0.7.10 | Compiled successfully; connected tests remain unrun. |
 
-The host suite covers provider ownership/parsing, stable identities and ordering, permission/read failures, real DataStore persistence, intent validation, local HTTP artwork and image recycling, D-pad/focus restoration, Settings edits and Ukrainian localization. UI regressions cover viewport clipping, captions on every Home row, matching compact Home/editor tiles, banner/icon fallbacks on all app screens, neighbour overlap without reflow, foreground borders over opaque artwork, font bounds for two-line labels, saved Home-role status, initial selection after delayed preferences, System settings placement and its standard intent, and system date/time formatting independent of interface language. Home customization regressions cover hidden Apps across populated/empty/missing/denied/loading channel states, inert date navigation, responsive grid wrapping and stable app focus across reflow, six saved gradients, actual visibility/layout control writes, legacy preference defaults and DataStore recreation. Review regressions retain saved app anchors while preferences load, preserve channel-row identity when sources reuse internal item IDs, and restore chooser focus after a refresh and cancellation. Date/time cases include US/UK defaults, Ukrainian long dates, live 12/24-hour changes and system locale changes. New regressions cover Home row/grid horizontal edge containment (including single-item rows), date-to-Settings navigation, the bottom two-column Options section, and its focus retention through content refresh. The existing favourite-editor lifecycle regression follows the new section order while retaining saved app-row positions. Square, widescreen and extra-wide channel cards have matching neighbour overlap within 2dp, preserve image proportions and keep their neighbours stationary. Home-intent regressions reset selection in Apps row/grid modes from cards, header controls and secondary pages, cover All apps/hidden Apps/empty and denied channels, and verify that delayed preferences or channel data do not restore the old selection. Ordinary refreshes retain the selected card, and the lifecycle test continues to reject transient Settings focus. All existing Back/refresh cases also pass in the current suite. Host graphics use Robolectric shadows and do not establish native rendering performance.
+The host suite covers provider ownership/parsing, stable identities and ordering, permission/read failures, real DataStore persistence, intent validation, local HTTP artwork and image recycling, D-pad/focus restoration, Settings edits and Ukrainian localization. UI regressions cover viewport clipping, captions on every Home row, matching compact Home/editor tiles, banner/icon fallbacks on all app screens, neighbour overlap without reflow, foreground borders over opaque artwork, font bounds for two-line labels, saved Home-role status, initial selection after delayed preferences, System settings placement and its standard intent, and system date/time formatting independent of interface language. Home customization regressions cover hidden Apps across populated/empty/missing/denied/loading channel states, inert date navigation, responsive grid wrapping and stable app focus across reflow, six saved gradients, actual visibility/layout control writes, legacy preference defaults and DataStore recreation. Review regressions retain saved app anchors while preferences load, preserve channel-row identity when sources reuse internal item IDs, and restore chooser focus after a refresh and cancellation. Date/time cases include US/UK defaults, Ukrainian long dates, live 12/24-hour changes and system locale changes. New regressions cover Home row/grid horizontal edge containment (including single-item rows), date-to-Settings navigation, the bottom two-column Options section, and its focus retention through content refresh. The existing favourite-editor lifecycle regression follows the new section order while retaining saved app-row positions. Square, widescreen and extra-wide channel cards have matching neighbour overlap within 2dp, preserve image proportions and keep their neighbours stationary. Home-intent regressions reset selection in Apps row/grid modes from cards, header controls and secondary pages, cover All apps/hidden Apps/empty and denied channels, and verify that delayed preferences or channel data do not restore the old selection. Home also clears every remembered channel-row position: regressions revisit three channel rows in Row/Grid modes with Apps visible or hidden, including a refresh before focus restoration. Ordinary navigation and refreshes retain remembered row selections, and the lifecycle test continues to reject transient Settings focus. All existing Back/refresh cases also pass in the current suite. Host graphics use Robolectric shadows and do not establish native rendering performance.
 
 Last full-check command:
 
@@ -25,11 +25,13 @@ The artwork-only update was built with `:app:assembleRelease --offline --no-daem
 
 Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Options-order build was installed successfully. The latest artwork update was rebuilt, signature-verified and installed successfully on the TV on 2026-11-03. Installation only was performed; no device checks or app launch followed.
 
+The Home row-position reset was built and verified locally on 2026-11-05. It has not been installed on the TV; no device checks were performed for this fix.
+
 ## Current signed release
 
 - APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.0-release.apk`; version code **21**, application ID `dev.personal.tvlauncher`.
 - Size: **2,451,620 bytes**.
-- SHA-256: `b66fedf5d43104af2a2072f86753e39e37a5cbcf63b0669dda236d1da558d8f4`.
+- SHA-256: `4277a47fd81aba2b93bad85b096271706a9ec44f939e40ff38ea0d7c1634b785`.
 - `apksigner verify --verbose --print-certs`: verifies with APK signature scheme v2 and the original RSA-3072 signer.
 - Signing certificate SHA-256: `f0216e56a56d5443a5d040900eae7b59a9b8b48dadc458d6e22516cd3d3724e1`.
 
