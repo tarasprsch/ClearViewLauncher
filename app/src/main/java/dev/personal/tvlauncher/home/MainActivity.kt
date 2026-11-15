@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var root: RemoteRoot
     private lateinit var body: LinearLayout
     private lateinit var scroll: ScrollView
+    private lateinit var allAppsButton: Button
     private lateinit var settingsButton: Button
     private lateinit var clock: TextView
     private lateinit var date: TextView
@@ -101,7 +102,13 @@ class MainActivity : ComponentActivity() {
             // Keep the scrolling viewport from drawing over the fixed header.
             clipChildren = true; clipToPadding = false
         }
-        val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        // The 100dp captions extend 27dp past the right-aligned 46dp buttons.
+        val captionOverhang = dp(27)
+        val header = LinearLayout(this).apply {
+            gravity = Gravity.TOP
+            clipChildren = false; clipToPadding = false
+            setPaddingRelative(0, 0, captionOverhang, 0)
+        }
         val clockBlock = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         clock = TextView(this).apply {
             textSize = 32f; setTextColor(TvColors.text)
@@ -119,7 +126,7 @@ class MainActivity : ComponentActivity() {
             setOnKeyListener { _, code, event ->
                 if (screen != Screen.HOME || event.action != KeyEvent.ACTION_DOWN) false
                 else when (code) {
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> { settingsButton.requestFocus(); true }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> { (if (allAppsButton.isShown) allAppsButton else settingsButton).requestFocus(); true }
                     KeyEvent.KEYCODE_DPAD_DOWN -> { focusHomeContent(); true }
                     KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_LEFT -> true
                     else -> false
@@ -128,17 +135,31 @@ class MainActivity : ComponentActivity() {
         }
         clockBlock.addView(date, LinearLayout.LayoutParams(-2, -2)); updateDateTime()
         header.addView(clockBlock, LinearLayout.LayoutParams(0, -2, 1f))
-        settingsButton = iconAction(getString(R.string.settings), "settings", R.drawable.ic_settings) { navigate(Screen.SETTINGS) }
-        settingsButton.setOnKeyListener { _, code, event ->
+        allAppsButton = iconAction(getString(R.string.all_apps), "all-apps", R.drawable.ic_grid) { navigate(Screen.APPS) }
+        allAppsButton.setOnKeyListener { _, code, event ->
             if (screen != Screen.HOME || event.action != KeyEvent.ACTION_DOWN) false
             else when (code) {
                 KeyEvent.KEYCODE_DPAD_LEFT -> { date.requestFocus(); true }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> { settingsButton.requestFocus(); true }
                 KeyEvent.KEYCODE_DPAD_DOWN -> { focusHomeContent(); true }
                 else -> false
             }
         }
-        header.addView(settingsButton, LinearLayout.LayoutParams(dp(46), dp(46)))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(56)))
+        header.addView(headerAction(allAppsButton), LinearLayout.LayoutParams(dp(100), dp(84)).apply {
+            // Share caption space; only the focused label is shown. Keep 24dp between the 46dp icons.
+            marginEnd = -dp(30)
+        })
+        settingsButton = iconAction(getString(R.string.settings), "settings", R.drawable.ic_settings) { navigate(Screen.SETTINGS) }
+        settingsButton.setOnKeyListener { _, code, event ->
+            if (screen != Screen.HOME || event.action != KeyEvent.ACTION_DOWN) false
+            else when (code) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> { (if (allAppsButton.isShown) allAppsButton else date).requestFocus(); true }
+                KeyEvent.KEYCODE_DPAD_DOWN -> { focusHomeContent(); true }
+                else -> false
+            }
+        }
+        header.addView(headerAction(settingsButton), LinearLayout.LayoutParams(dp(100), dp(84)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(84)).apply { marginEnd = -captionOverhang })
         scroll = ScrollView(this).apply { isFillViewport = true; isFocusable = false; clipChildren = true; clipToPadding = true }
         scroll.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
             if (right - left != oldRight - oldLeft) scroll.post {
@@ -258,6 +279,7 @@ class MainActivity : ComponentActivity() {
             appliedBackground = state.preferences.background
         }
         date.isFocusable = screen == Screen.HOME
+        (allAppsButton.parent as View).visibility = if (screen == Screen.HOME && !state.preferences.showApps) View.VISIBLE else View.GONE
         val oldScroll = if (keepFocus) scroll.scrollY else 0
         val generation = ++renderGeneration
         // Detach adapters to cancel image requests owned by removed rows.
@@ -295,7 +317,7 @@ class MainActivity : ComponentActivity() {
             if (screen != Screen.HOME && keepFocus) scroll.scrollTo(0, oldScroll)
             val tag = if (keepFocus) chromeFocus else null
             val tagged = listOfNotNull(tag?.takeUnless { it.startsWith("card:") }, editFallback.takeIf { keepFocus })
-                .mapNotNull { window.decorView.findViewWithTag<View>(it) }.firstOrNull { it.isFocusable && it.isEnabled }
+                .mapNotNull { window.decorView.findViewWithTag<View>(it) }.firstOrNull { it.isShown && it.isFocusable && it.isEnabled }
             if (tagged != null && tagged.isFocusable && tagged.isEnabled) tagged.requestFocus()
             else if (screen == Screen.HOME || screen == Screen.APPS || screen == Screen.FAVOURITES) {
                 val saved = when (screen) {
@@ -549,6 +571,29 @@ class MainActivity : ComponentActivity() {
 
     private fun editAction(text: String, key: String, fallback: String, block: () -> Unit) = action(text, key) {
         chromeFocus = key; editFallback = fallback; block()
+    }
+
+    private fun headerAction(button: Button): FrameLayout = FrameLayout(this).apply {
+        clipChildren = false; clipToPadding = false
+        addView(button, FrameLayout.LayoutParams(dp(46), dp(46), Gravity.TOP or Gravity.END).apply {
+            topMargin = dp(5)
+        })
+        val caption = label(button.contentDescription.toString(), TvTypography.cardCaption).apply {
+            tag = "${button.tag}-label"
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            setTextColor(TvColors.text)
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+            visibility = View.INVISIBLE
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        addView(caption, FrameLayout.LayoutParams(dp(100), dp(24), Gravity.TOP or Gravity.END).apply {
+            topMargin = dp(57); marginEnd = -dp(27)
+        })
+        val focusVisuals = button.onFocusChangeListener
+        button.setOnFocusChangeListener { view, focused ->
+            focusVisuals?.onFocusChange(view, focused)
+            caption.visibility = if (focused) View.VISIBLE else View.INVISIBLE
+        }
     }
 
     private fun iconAction(description: String, key: String, icon: Int, block: () -> Unit) = action("", key, block = block).apply {

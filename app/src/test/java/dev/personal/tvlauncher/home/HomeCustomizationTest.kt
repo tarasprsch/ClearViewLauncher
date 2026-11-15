@@ -98,11 +98,83 @@ class HomeCustomizationTest {
                 key(activity, KeyEvent.KEYCODE_DPAD_DOWN)
                 assertEquals("date", activity.window.decorView.findFocus()?.tag)
                 key(activity, KeyEvent.KEYCODE_DPAD_RIGHT)
-                assertEquals("settings", activity.window.decorView.findFocus()?.tag)
+                assertEquals("all-apps", activity.window.decorView.findFocus()?.tag)
             }
         }
     }
 
+    @Test fun hiddenAppsHeaderOpensAllAppsAndSupportsRemoteNavigation() {
+        Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            val hidden = HomeState(preferences = LauncherPreferences(showApps = false), preferencesLoaded = true)
+            display(activity, hidden); settle(activity)
+            val root = activity.window.decorView
+            val allApps = root.findViewWithTag<android.widget.Button>("all-apps")
+            assertNotNull("Hidden Apps must remain accessible from the header", allApps)
+            assertTrue(allApps.isShown)
+            assertEquals("All apps", allApps.contentDescription)
+            key(activity, KeyEvent.KEYCODE_DPAD_RIGHT)
+            assertSame(allApps, root.findFocus())
+            key(activity, KeyEvent.KEYCODE_DPAD_RIGHT)
+            assertEquals("settings", root.findFocus()?.tag)
+            key(activity, KeyEvent.KEYCODE_DPAD_LEFT)
+            assertSame(allApps, root.findFocus())
+            key(activity, KeyEvent.KEYCODE_DPAD_LEFT)
+            assertEquals("date", root.findFocus()?.tag)
+            allApps.performClick(); settle(activity)
+            assertEquals("All apps", root.findViewWithTag<TextView>("page-title").text.toString())
+            assertFalse("Shortcut is only shown on Home", allApps.isShown)
+            root.findViewWithTag<View>("back").performClick(); settle(activity)
+            assertTrue(allApps.isShown)
+            allApps.requestFocus()
+            display(activity, hidden.copy(preferences = LauncherPreferences(showApps = true)), keepFocus = true)
+            settle(activity)
+            assertFalse("Visible Apps already contains All apps", allApps.isShown)
+            assertFalse("Hidden shortcuts must not retain focus", allApps.hasFocus())
+        }
+    }
+
+    @Test fun headerCaptionsFollowFocusWithoutMovingTheButtons() {
+        Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            display(activity, HomeState(preferences = LauncherPreferences(showApps = false), preferencesLoaded = true))
+            settle(activity)
+            val root = activity.window.decorView
+            val allApps = root.findViewWithTag<View>("all-apps")
+            val settings = root.findViewWithTag<View>("settings")
+            val appsCaption = root.findViewWithTag<TextView>("all-apps-label")
+            val settingsCaption = root.findViewWithTag<TextView>("settings-label")
+            assertNotNull("Header buttons need focus captions", appsCaption)
+            assertNotNull("Settings needs a focus caption", settingsCaption)
+            assertEquals(View.INVISIBLE, appsCaption.visibility)
+            assertEquals(View.INVISIBLE, settingsCaption.visibility)
+            val settingsTop = settings.top
+            key(activity, KeyEvent.KEYCODE_DPAD_RIGHT)
+            assertEquals(View.VISIBLE, appsCaption.visibility)
+            assertEquals(View.INVISIBLE, settingsCaption.visibility)
+            key(activity, KeyEvent.KEYCODE_DPAD_RIGHT)
+            assertEquals(View.INVISIBLE, appsCaption.visibility)
+            assertEquals(View.VISIBLE, settingsCaption.visibility)
+            val header = settings.parent.parent as ViewGroup
+            for ((button, caption) in listOf(allApps to appsCaption, settings to settingsCaption)) {
+                val captionBounds = android.graphics.Rect(0, 0, caption.width, caption.height)
+                header.offsetDescendantRectToMyCoords(caption, captionBounds)
+                val buttonBounds = android.graphics.Rect(0, 0, button.width, button.height)
+                header.offsetDescendantRectToMyCoords(button, buttonBounds)
+                assertEquals("Captions must stay centered beneath their buttons",
+                    buttonBounds.exactCenterX(), captionBounds.exactCenterX(), 1f)
+                val captionLayout = caption.layout
+                assertEquals("Caption text must be centered in its available space", caption.width / 2f,
+                    (captionLayout.getLineLeft(0) + captionLayout.getLineRight(0)) / 2f, 1f)
+                assertTrue("Captions must be below their icons", captionBounds.top >= buttonBounds.bottom)
+                assertTrue("Header must contain captions so its parent cannot clip them: $captionBounds",
+                    android.graphics.Rect(0, 0, header.width, header.height).contains(captionBounds))
+            }
+            assertEquals(settingsTop, settings.top)
+            key(activity, KeyEvent.KEYCODE_DPAD_DOWN)
+            assertEquals(View.INVISIBLE, settingsCaption.visibility)
+        }
+    }
     @Test fun automaticDateFallbackDoesNotEraseSavedChannelFocusWhileContentLoads() {
         val row = ChannelRow("source.app", 2, "filled", "Filled", listOf(ChannelItem(21, "First", null), ChannelItem(22, "Second", null)))
         val prefs = LauncherPreferences(lists = listOf(SavedList(row.key, row.ownerPackage, row.title)), showApps = false)

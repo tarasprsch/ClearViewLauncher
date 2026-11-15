@@ -84,7 +84,7 @@
     <string name="background_plum">Plum</string>
     <string name="background_burgundy">Burgundy</string>
     <string name="background_graphite">Graphite</string>
-    <string name="show_apps_home">Show Apps on Home</string>
+    <string name="show_apps_home">Show Apps section on Home</string>
     <string name="apps_layout">Apps layout</string>
     <string name="apps_layout_choice">Apps layout: %1$s</string>
     <string name="layout_row">Row</string>

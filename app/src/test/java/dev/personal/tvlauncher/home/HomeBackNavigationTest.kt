@@ -64,8 +64,8 @@ class HomeBackNavigationTest {
         assertEquals("card:app0/.Main", activity.window.decorView.findFocus()?.tag)
     }
 
-    @Test fun backFromEitherHeaderControlSelectsTheFirstHomePanelRatherThanTheSavedPanel() = withHome(channelHome()) { activity, _ ->
-        for (header in listOf("settings", "date")) {
+    @Test fun backFromEveryHeaderControlSelectsTheFirstHomePanelRatherThanTheSavedPanel() = withHome(channelHome()) { activity, _ ->
+        for (header in listOf("settings", "all-apps", "date")) {
             focus(activity, 4, 2)
             activity.window.decorView.findViewWithTag<View>(header).requestFocus()
             back(activity)
@@ -87,7 +87,7 @@ class HomeBackNavigationTest {
             activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, key))
             settle(activity)
         }
-        assertEquals("settings", activity.window.decorView.findFocus()?.tag)
+        assertEquals("all-apps", activity.window.decorView.findFocus()?.tag)
         dispatchBack(activity)
         display(activity, snapshot, true); settle(activity)
         assertEquals("A refresh must not restore the previous header selection", "Channel 0 item 0", activity.window.decorView.findFocus()?.contentDescription)
@@ -108,7 +108,7 @@ class HomeBackNavigationTest {
         for (load in loads) withHome(HomeState(preferences = LauncherPreferences(showApps = false), channelState = load, preferencesLoaded = true)) { activity, _ ->
             activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT))
             activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT))
-            assertEquals("settings", activity.window.decorView.findFocus()?.tag)
+            assertEquals("all-apps", activity.window.decorView.findFocus()?.tag)
             back(activity)
             assertEquals("date", activity.window.decorView.findFocus()?.tag)
             back(activity)

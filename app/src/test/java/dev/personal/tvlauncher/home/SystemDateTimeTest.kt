@@ -107,8 +107,7 @@ class SystemDateTimeTest {
     }
 
     private fun assertHeader(activity: MainActivity, timePattern: String, datePattern: String, locale: Locale = Locale.US) {
-        val header = activity.window.decorView.findViewWithTag<View>("settings").parent as ViewGroup
-        val clockBlock = header.getChildAt(0) as ViewGroup
+        val clockBlock = activity.window.decorView.findViewWithTag<View>("date").parent as ViewGroup
         fun text(index: Int) = (clockBlock.getChildAt(index) as TextView).text.toString()
             .replace('\u202f', ' ').replace('\u00a0', ' ')
         // Literal regional patterns are independent of the Android formatter-selection code.

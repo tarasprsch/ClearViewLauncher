@@ -1,16 +1,16 @@
 # Verification
 
-Latest recorded checks: 2026-11-05, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
+Latest recorded checks: 2026-11-15, Windows, JDK 17, Gradle 8.13, Android SDK 36/build tools 35.0.0. The physical test device is a G1 running Android 14 (API 34).
 
 ## Automated checks
 
 | Check | Last run | Result |
 | --- | --- | --- |
-| Host unit suite | 0.8.0 | 106 tests across 16 suites; no failures, errors or skips. |
+| Host unit suite | 0.8.5 | 108 tests across 16 suites; no failures, errors or skips. |
 | Caption, settings and customization suites | 0.8.0 | 48 tests across three suites; no failures, errors or skips. |
-| Signed release build | 0.8.0 | APK assembled and verified with the original signer. |
-| Debug build | 0.7.10 | APK assembled successfully. |
-| Debug lint | 0.8.0 | 0 errors, 14 warnings. |
+| Signed release build | 0.8.5 | APK assembled and verified against the signer installed on the TV. |
+| Debug build | 0.8.0 | APK assembled successfully with the header update. |
+| Debug lint | 0.8.5 | 0 errors, 8 warnings. |
 | Instrumentation APK assembly | 0.7.10 | Compiled successfully; connected tests remain unrun. |
 
 The host suite covers provider ownership/parsing, stable identities and ordering, permission/read failures, real DataStore persistence, intent validation, local HTTP artwork and image recycling, D-pad/focus restoration, Settings edits and Ukrainian localization. UI regressions cover viewport clipping, captions on every Home row, matching compact Home/editor tiles, banner/icon fallbacks on all app screens, neighbour overlap without reflow, foreground borders over opaque artwork, font bounds for two-line labels, saved Home-role status, initial selection after delayed preferences, System settings placement and its standard intent, and system date/time formatting independent of interface language. Home customization regressions cover hidden Apps across populated/empty/missing/denied/loading channel states, inert date navigation, responsive grid wrapping and stable app focus across reflow, six saved gradients, actual visibility/layout control writes, legacy preference defaults and DataStore recreation. Review regressions retain saved app anchors while preferences load, preserve channel-row identity when sources reuse internal item IDs, and restore chooser focus after a refresh and cancellation. Date/time cases include US/UK defaults, Ukrainian long dates, live 12/24-hour changes and system locale changes. New regressions cover Home row/grid horizontal edge containment (including single-item rows), date-to-Settings navigation, the bottom two-column Options section, and its focus retention through content refresh. The existing favourite-editor lifecycle regression follows the new section order while retaining saved app-row positions. Square, widescreen and extra-wide channel cards have matching neighbour overlap within 2dp, preserve image proportions and keep their neighbours stationary. Home-intent regressions reset selection in Apps row/grid modes from cards, header controls and secondary pages, cover All apps/hidden Apps/empty and denied channels, and verify that delayed preferences or channel data do not restore the old selection. Home also clears every remembered channel-row position: regressions revisit three channel rows in Row/Grid modes with Apps visible or hidden, including a refresh before focus restoration. Ordinary navigation and refreshes retain remembered row selections, and the lifecycle test continues to reject transient Settings focus. All existing Back/refresh cases also pass in the current suite. Host graphics use Robolectric shadows and do not establish native rendering performance.
@@ -25,17 +25,29 @@ The artwork-only update was built with `:app:assembleRelease --offline --no-daem
 
 Connected tests use `:app:connectedDebugAndroidTest` and require a matching debug target/test installation. The TV's personal signed release was preserved rather than uninstalled to switch signing keys. The preceding 0.8.0 Options-order build was installed successfully. The latest artwork update was rebuilt, signature-verified and installed successfully on the TV on 2026-11-03. Installation only was performed; no device checks or app launch followed.
 
-The Home row-position reset was built and verified locally on 2026-11-05. It has not been installed on the TV; no device checks were performed for this fix.
+The Home row-position reset was built and verified locally on 2026-11-05 and is included in the 0.8.1 update installed on 2026-11-15. No native UI checks were performed for this fix.
 
 ## Current signed release
 
-- APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.0-release.apk`; version code **21**, application ID `dev.personal.tvlauncher`.
-- Size: **2,451,620 bytes**.
-- SHA-256: `4277a47fd81aba2b93bad85b096271706a9ec44f939e40ff38ea0d7c1634b785`.
-- `apksigner verify --verbose --print-certs`: verifies with APK signature scheme v2 and the original RSA-3072 signer.
+- APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.5-release.apk`; version code **26**, application ID `dev.personal.tvlauncher`.
+- Size: **2,468,008 bytes**.
+- SHA-256: `db7623f55639fb4713fb19ddd7a4c23dfaa5dcf7118c59f1d3c46ee6686c7687`.
+- `apksigner verify --verbose --print-certs`: verifies with the same signer as the APK pulled from the TV before this update.
 - Signing certificate SHA-256: `f0216e56a56d5443a5d040900eae7b59a9b8b48dadc458d6e22516cd3d3724e1`.
 
+Version 0.8.5 restores labels centered beneath the right-aligned header buttons and increases their gap to 24dp. The header's drawing bounds extend into existing outer padding to contain the centered Settings caption without moving the buttons or clipping text. Regression checks cover both caption-box and actual text centering, along with caption bounds. The latest English and Ukrainian wording is preserved. Verification passed all 108 unit tests, debug lint (0 errors, 8 warnings), and signed release assembly including release vital lint, using `:app:testDebugUnitTest :app:lintDebug :app:assembleRelease --offline --console plain`.
+
 ## Device checks
+
+Version **0.8.5 (26)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
+
+Version **0.8.4 (25)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
+
+Version **0.8.3 (24)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
+
+Version **0.8.2 (23)**, rebuilt after the user's final text edit, installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
+
+Version **0.8.1 (22)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
 
 The 0.8.0 release with the new square icon and separate TV banner installed successfully on 2026-11-03 using `adb install -r`. No device checks or app launch were performed.
 

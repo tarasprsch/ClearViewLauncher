@@ -86,7 +86,7 @@
     <string name="background_plum">Сливовий</string>
     <string name="background_burgundy">Бордовий</string>
     <string name="background_graphite">Графітовий</string>
-    <string name="show_apps_home">Показувати застосунки на головному екрані</string>
+    <string name="show_apps_home">Розділ застосунків на головному екрані</string>
     <string name="apps_layout">Вигляд застосунків</string>
     <string name="apps_layout_choice">Вигляд застосунків: %1$s</string>
     <string name="layout_row">Рядок</string>
