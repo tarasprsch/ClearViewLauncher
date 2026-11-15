@@ -279,6 +279,7 @@ class MainActivity : ComponentActivity() {
             appliedBackground = state.preferences.background
         }
         date.isFocusable = screen == Screen.HOME
+        (settingsButton.parent as View).visibility = if (screen == Screen.HOME) View.VISIBLE else View.GONE
         (allAppsButton.parent as View).visibility = if (screen == Screen.HOME && !state.preferences.showApps) View.VISIBLE else View.GONE
         val oldScroll = if (keepFocus) scroll.scrollY else 0
         val generation = ++renderGeneration
@@ -328,7 +329,7 @@ class MainActivity : ComponentActivity() {
                 val previous = relocateAppAnchor(saved)
                 val desired = restoreFocus(previous, focusRows)
                 if (desired != null) focusCard(desired.rowIndex, desired.itemIndex, restore = true)
-                else (if (screen == Screen.HOME) date else settingsButton).requestFocus()
+                else (if (screen == Screen.HOME) date else body.findViewWithTag<View>("back"))?.requestFocus()
             } else body.findViewWithTag<View>("back")?.requestFocus()
         }
     }
@@ -490,7 +491,7 @@ class MainActivity : ComponentActivity() {
             val column = if (sameGrid) rowPositions[focusRows[fromRow].key] else rowPositions[focusRows[index].key]
             focusCard(index, column ?: 0)
         } else if (target != null) target.requestFocus()
-        else if (direction < 0) (if (screen == Screen.HOME) date else settingsButton).requestFocus()
+        else if (direction < 0) (if (screen == Screen.HOME) date else body.findViewWithTag<View>("back"))?.requestFocus()
         return true
     }
 

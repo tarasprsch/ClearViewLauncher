@@ -26,7 +26,7 @@ Back up `.signing/personal.jks` and `keystore.properties` securely together. Bot
 
 1. Enable developer options and USB/network debugging on the TV; authorize your computer. Pair network ADB through the device's own settings where required.
 2. Record the existing default Home component before changing it: `adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME`.
-3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.8.5-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.8.5-debug.apk` for debug testing. Filenames include the application version automatically.
+3. Install: `adb install -r app/build/outputs/apk/release/ClearViewLauncher-0.8.6-release.apk`. Use `app/build/outputs/apk/debug/ClearViewLauncher-0.8.6-debug.apk` for debug testing. Filenames include the application version automatically.
 4. Open **Clear View Launcher** from your current launcher. Go to **Settings > Channel access** and approve the system permission prompt. Then use **Settings > Channel lists** to select rows grouped by their source app. No rows are automatically selected.
 5. Use **Settings > Use as default launcher** when the system Home role is available. Some devices instead offer a default Home setting or a Home-button chooser. Device firmware can prevent changing Home.
 

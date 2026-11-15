@@ -6,9 +6,9 @@ Latest recorded checks: 2026-11-15, Windows, JDK 17, Gradle 8.13, Android SDK 36
 
 | Check | Last run | Result |
 | --- | --- | --- |
-| Host unit suite | 0.8.5 | 108 tests across 16 suites; no failures, errors or skips. |
+| Host unit suite | 0.8.5 | 109 tests across 16 suites; no failures, errors or skips. |
 | Caption, settings and customization suites | 0.8.0 | 48 tests across three suites; no failures, errors or skips. |
-| Signed release build | 0.8.5 | APK assembled and verified against the signer installed on the TV. |
+| Signed release build | 0.8.6 | APK assembled and verified against the signer installed on the TV. |
 | Debug build | 0.8.0 | APK assembled successfully with the header update. |
 | Debug lint | 0.8.5 | 0 errors, 8 warnings. |
 | Instrumentation APK assembly | 0.7.10 | Compiled successfully; connected tests remain unrun. |
@@ -29,15 +29,17 @@ The Home row-position reset was built and verified locally on 2026-11-05 and is 
 
 ## Current signed release
 
-- APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.5-release.apk`; version code **26**, application ID `dev.personal.tvlauncher`.
-- Size: **2,468,008 bytes**.
-- SHA-256: `db7623f55639fb4713fb19ddd7a4c23dfaa5dcf7118c59f1d3c46ee6686c7687`.
+- APK: `app/build/outputs/apk/release/ClearViewLauncher-0.8.6-release.apk`; version code **27**, application ID `dev.personal.tvlauncher`.
+- Size: **2,468,004 bytes**.
+- SHA-256: `c8c4d9dea1e20c1fe2082959be06d643b79901fe72b85967e8e97a941d6b1a67`.
 - `apksigner verify --verbose --print-certs`: verifies with the same signer as the APK pulled from the TV before this update.
 - Signing certificate SHA-256: `f0216e56a56d5443a5d040900eae7b59a9b8b48dadc458d6e22516cd3d3724e1`.
 
-Version 0.8.5 restores labels centered beneath the right-aligned header buttons and increases their gap to 24dp. The header's drawing bounds extend into existing outer padding to contain the centered Settings caption without moving the buttons or clipping text. Regression checks cover both caption-box and actual text centering, along with caption bounds. The latest English and Ukrainian wording is preserved. Verification passed all 108 unit tests, debug lint (0 errors, 8 warnings), and signed release assembly including release vital lint, using `:app:testDebugUnitTest :app:lintDebug :app:assembleRelease --offline --console plain`.
+Version 0.8.6 makes the Settings header action and its caption visible only on Home. Secondary pages retain the clock/date header and use their visible Back/Home control for empty-content and upward-navigation focus fallbacks. Returning Home restores Settings and its focused caption. Centered labels and the 24dp header button gap are preserved. Before the release version bump, the fix passed all 109 unit tests, debug lint (0 errors, 8 warnings), and debug assembly. The signed release passed `:app:assembleRelease --offline --console plain`, including release vital lint. Regression coverage includes Settings, Apps & favourites, Channel lists, empty All apps, refresh, upward navigation, and return to Home.
 
 ## Device checks
+
+Version **0.8.6 (27)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
 
 Version **0.8.5 (26)** installed successfully on the G1 at **192.168.0.122:5555** on **2026-11-15** using ADB install with the update flag. Package metadata confirmed the new version, and Home still resolves to Clear View Launcher. No app launch or native UI checks were performed during this deployment.
 

@@ -105,7 +105,8 @@ class FocusLifecycleTest {
             activity.window.decorView.findViewWithTag<View>("back").performClick()
             activity.window.decorView.findViewWithTag<View>("settings").performClick()
             activity.window.decorView.findViewWithTag<View>("settings-apps").performClick(); checkCards()
-            assertTrue("Secondary pages keep the Home clock/settings header", (activity.window.decorView.findViewWithTag<View>("settings").parent as View).isShown)
+            assertTrue("Secondary pages keep the clock/date header", activity.window.decorView.findViewWithTag<View>("date").isShown)
+            assertFalse("Settings is a Home-only header action", activity.window.decorView.findViewWithTag<View>("settings").isShown)
         }
     }
 

@@ -134,6 +134,45 @@ class HomeCustomizationTest {
         }
     }
 
+    @Test fun headerSettingsIsOnlyVisibleOnHomeAndSubpagesKeepBackNavigation() {
+        Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
+            val activity = controller.get()
+            val home = HomeState(preferencesLoaded = true)
+            display(activity, home); settle(activity)
+            val root = activity.window.decorView
+            val settings = root.findViewWithTag<View>("settings")
+            val caption = root.findViewWithTag<View>("settings-label")
+            fun checkSubpage() {
+                assertFalse("Header Settings is only visible on Home", settings.isShown)
+                assertFalse("Its caption must also be hidden", caption.isShown)
+                assertFalse("Hidden Settings cannot retain focus", settings.hasFocus())
+                val back = root.findViewWithTag<View>("back")
+                assertTrue(back.isShown)
+                assertSame("Empty subpages must focus their visible Back/Home control", back, root.findFocus())
+                key(activity, KeyEvent.KEYCODE_DPAD_UP)
+                assertSame("Up from Back must not target hidden Settings", back, root.findFocus())
+            }
+            assertTrue(settings.isShown)
+            settings.requestFocus(); settings.performClick(); settle(activity)
+            checkSubpage()
+            for (editor in listOf("settings-apps", "settings-lists")) {
+                root.findViewWithTag<View>(editor).performClick(); settle(activity)
+                checkSubpage()
+                root.findViewWithTag<View>("back").performClick(); settle(activity)
+                checkSubpage()
+            }
+            root.findViewWithTag<View>("back").performClick(); settle(activity)
+            assertTrue("Returning Home must restore Settings", settings.isShown)
+            root.findViewWithTag<View>("card:all-apps").performClick(); settle(activity)
+            checkSubpage()
+            display(activity, home, keepFocus = true); settle(activity)
+            checkSubpage()
+            root.findViewWithTag<View>("back").performClick(); settle(activity)
+            assertTrue(settings.isShown)
+            settings.requestFocus()
+            assertTrue("Home focus caption must still work", caption.isShown)
+        }
+    }
     @Test fun headerCaptionsFollowFocusWithoutMovingTheButtons() {
         Robolectric.buildActivity(MainActivity::class.java).create().visible().windowFocusChanged(true).use { controller ->
             val activity = controller.get()
