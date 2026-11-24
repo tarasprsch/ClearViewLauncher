@@ -3,6 +3,7 @@ package dev.personal.tvlauncher.apps
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
@@ -25,14 +26,16 @@ class AppsRepository(private val context: Context) {
                 addAction(Intent.ACTION_PACKAGE_CHANGED); addAction(Intent.ACTION_PACKAGE_REPLACED)
                 addDataScheme("package")
             }
-            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+            if (Build.VERSION.SDK_INT >= 33) context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+            else context.registerReceiver(receiver, filter)
             awaitClose { context.unregisterReceiver(receiver) }
         }
         return merge(refreshes.map { Unit }, packages).conflate().map {
-            context.packageManager.queryIntentActivities(
-                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),
-                PackageManager.ResolveInfoFlags.of(0),
-            ).mapNotNull { resolved ->
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+            val resolvedApps = if (Build.VERSION.SDK_INT >= 33)
+                context.packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+            else context.packageManager.queryIntentActivities(intent, 0)
+            resolvedApps.mapNotNull { resolved ->
                 val activity = resolved.activityInfo ?: return@mapNotNull null
                 if (activity.packageName == context.packageName || !activity.enabled || !activity.exported) return@mapNotNull null
                 TvApp(

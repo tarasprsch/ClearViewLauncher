@@ -14,7 +14,7 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "dev.personal.tvlauncher"
-        minSdk = 34
+        minSdk = 29
         targetSdk = 36
         versionCode = 27
         versionName = "0.8.6"
@@ -39,6 +39,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    bundle { language { enableSplit = false } }
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
 kotlin { compilerOptions { jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17 } }

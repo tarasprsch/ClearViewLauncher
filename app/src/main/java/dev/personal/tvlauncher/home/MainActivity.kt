@@ -7,6 +7,8 @@ import android.app.role.RoleManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.content.res.Resources
+import android.os.Build
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
@@ -75,6 +77,17 @@ class MainActivity : ComponentActivity() {
 
     private val timeFormatChanges = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) { updateDateTime() }
+    }
+
+    override fun attachBaseContext(base: Context) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            super.attachBaseContext(base)
+            return
+        }
+        val language = base.getSharedPreferences("language", Context.MODE_PRIVATE).getString("tag", "").orEmpty()
+        val config = Configuration(base.resources.configuration)
+        if (language.isNotEmpty()) config.setLocale(Locale.forLanguageTag(language))
+        super.attachBaseContext(base.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -173,8 +186,15 @@ class MainActivity : ComponentActivity() {
         }
         scroll.addView(body); root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
-        window.insetsController?.hide(WindowInsets.Type.systemBars())
-        window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.hide(WindowInsets.Type.systemBars())
+            window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+        }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (screen == Screen.HOME) backOnHome() else navigate(parentScreen())
@@ -191,11 +211,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        registerReceiver(timeChanges, IntentFilter().apply {
+        val filter = IntentFilter().apply {
             addAction(Intent.ACTION_TIME_TICK); addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED); addAction(Intent.ACTION_LOCALE_CHANGED)
             addAction(Intent.ACTION_DATE_CHANGED)
-        }, Context.RECEIVER_NOT_EXPORTED)
+        }
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(timeChanges, filter, Context.RECEIVER_NOT_EXPORTED)
+        else registerReceiver(timeChanges, filter)
         contentResolver.registerContentObserver(Settings.System.getUriFor(Settings.System.TIME_12_24), false, timeFormatChanges)
     }
     override fun onStop() {
@@ -234,7 +256,8 @@ class MainActivity : ComponentActivity() {
         if (!::clock.isInitialized || !::date.isInitialized) return
         // App language overrides must not change the TV's date/time language or preferences.
         val systemContext = createConfigurationContext(Configuration(resources.configuration).apply {
-            setLocales(getSystemService(LocaleManager::class.java).systemLocales)
+            setLocales(if (Build.VERSION.SDK_INT >= 33) getSystemService(LocaleManager::class.java).systemLocales
+                else Resources.getSystem().configuration.locales)
         })
         val now = Date()
         clock.text = android.text.format.DateFormat.getTimeFormat(systemContext).format(now)
@@ -816,15 +839,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun chooseLanguage() {
-        val manager = getSystemService(LocaleManager::class.java)
         val tags = arrayOf("", "en", "uk")
-        val current = manager.applicationLocales.get(0)?.language.orEmpty()
+        val current = if (Build.VERSION.SDK_INT >= 33)
+            getSystemService(LocaleManager::class.java).applicationLocales.get(0)?.language.orEmpty()
+        else getSharedPreferences("language", Context.MODE_PRIVATE).getString("tag", "").orEmpty()
         val options = arrayOf(getString(R.string.language_system), getString(R.string.language_english), getString(R.string.language_ukrainian))
         dialog?.dismiss()
         dialog = AlertDialog.Builder(this).setTitle(R.string.language)
             .setSingleChoiceItems(options, tags.indexOf(current).coerceAtLeast(0)) { selectedDialog, index ->
                 selectedDialog.dismiss()
-                manager.applicationLocales = LocaleList.forLanguageTags(tags[index])
+                if (Build.VERSION.SDK_INT >= 33) {
+                    getSystemService(LocaleManager::class.java).applicationLocales = LocaleList.forLanguageTags(tags[index])
+                } else {
+                    getSharedPreferences("language", Context.MODE_PRIVATE).edit().putString("tag", tags[index]).apply()
+                    recreate()
+                }
             }.setNegativeButton(R.string.cancel, null).create().also { it.show() }
     }
 
@@ -868,7 +897,10 @@ class MainActivity : ComponentActivity() {
     private fun listTitle(value: String) = value.ifBlank { getString(R.string.untitled_list) }
     private fun channelListTitle(owner: String, title: String) = getString(R.string.application_channel, sourceName(owner), listTitle(title))
     private fun sourceName(owner: String): String = state.apps.firstOrNull { it.component.packageName == owner }?.title ?: runCatching {
-        packageManager.getApplicationLabel(packageManager.getApplicationInfo(owner, PackageManager.ApplicationInfoFlags.of(0))).toString()
+        val info = if (Build.VERSION.SDK_INT >= 33)
+            packageManager.getApplicationInfo(owner, PackageManager.ApplicationInfoFlags.of(0))
+        else packageManager.getApplicationInfo(owner, 0)
+        packageManager.getApplicationLabel(info).toString()
     }.getOrDefault(owner)
     private fun message(value: String) { Toast.makeText(this, value, Toast.LENGTH_LONG).show() }
 }

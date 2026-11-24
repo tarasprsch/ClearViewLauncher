@@ -28,7 +28,7 @@ Available channel lists depend on what your installed apps share with the home s
 
 **Install on your TV**
 
-Requires **Android TV 14 or later**.
+Current source builds require **Android TV 10 or later**. The previously released 0.8.6 APK requires Android TV 14 or later.
 
 1. Copy the `ClearViewLauncher-0.8.6-release.apk` file to your TV using a USB drive or a file-transfer app.
 2. Open the APK with a file manager on your TV. If prompted, allow that file manager to install unknown apps, then select **Install**.
